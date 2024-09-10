@@ -65,7 +65,7 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
             namespace {{model.Namespace}};
             partial class {{model.ClassName}}
             {
-                partial void {{model.MethodName}}(JSObject shaderProgram, JSObject vertexBuffer, Span<ColorVertex3> vertices)
+                partial void {{model.MethodName}}(JSObject shaderProgram, JSObject vertexBuffer, Span<{{model.VertexType}}> vertices)
                 {
                     Console.WriteLine("Binding vertex buffer data");
                     // Print out Model members for debugging
