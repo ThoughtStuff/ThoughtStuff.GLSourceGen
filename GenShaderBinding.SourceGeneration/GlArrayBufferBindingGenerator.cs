@@ -88,9 +88,10 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
         var vertexType = model.VertexType;
         foreach (var field in model.VertexFields)
         {
-            // 2 Guesses at the GLSL variable name
+            // 3 Guesses at the GLSL variable name
             var glslVariableName1 = $"a_{field.Name}";
             var glslVariableName2 = $"a_Vertex{field.Name}";
+            var glslVariableName3 = $"a_Instance{field.Name}";
             var location = $"{field.Name}Location";
             int size = field.Type switch
             {
@@ -105,6 +106,8 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
                     var {{location}} = GL.GetAttribLocation(shaderProgram, "{{glslVariableName1}}");
                     if ({{location}} == -1)
                         {{location}} = GL.GetAttribLocation(shaderProgram, "{{glslVariableName2}}");
+                    if ({{location}} == -1)
+                        {{location}} = GL.GetAttribLocation(shaderProgram, "{{glslVariableName3}}");
                     if ({{location}} == -1)
                         throw new InvalidOperationException($"Could not find attribute location for {{glslVariableName1}}. Expected a vertex shader input variable named {{glslVariableName1}}.");
                     GL.EnableVertexAttribArray({{location}});
@@ -128,7 +131,7 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
             """;
         sourceBuilder.Append(closing);
         var sourceText = SourceText.From(sourceBuilder.ToString(), Encoding.UTF8);
-        context.AddSource($"{model.ClassName}_{model.MethodName}.g.cs", sourceText);
+        context.AddSource($"{model.ClassName}_{model.MethodName}_{model.VertexType}.g.cs", sourceText);
     }
 
     private static void DeclareGenerationAttribute(IncrementalGeneratorInitializationContext context)
