@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -32,14 +33,19 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
     {
         var containingClass = context.TargetSymbol.ContainingType;
         var methodSymbol = (IMethodSymbol)context.TargetSymbol;
-        var vertexParameter = methodSymbol.Parameters.FirstOrDefault(param => param.Type.Name == "Span")?.Type;
-
+        // Verify parameters are as expected
+        var parameters = methodSymbol.Parameters;
+        CheckParameterList(parameters);
+        var vertexParameter = parameters[2].Type;
         if (vertexParameter is not INamedTypeSymbol spanType || spanType.TypeArguments.Length != 1)
         {
-            throw new InvalidOperationException("Expected a Span<T> parameter");
+            throw new InvalidOperationException("Expected 3rd parameter to be a Span<CustomVertexType>");
         }
         var vertexType = spanType.TypeArguments[0];
-        // TODO: vertexType should be a struct with public fields
+        if (vertexType.TypeKind != TypeKind.Struct)
+        {
+            throw new InvalidOperationException("Vertex Type must be a struct type");
+        }
         var vertexFields = vertexType.GetMembers()
                                      .OfType<IFieldSymbol>()
                                      .Select(f => new VertexField(f.Name, f.Type.Name))
@@ -54,6 +60,30 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
             MethodName: context.TargetSymbol.Name,
             VertexType: vertexType.ToDisplayString(format),
             VertexFields: vertexFields);
+    }
+
+    private static void CheckParameterList(ImmutableArray<IParameterSymbol> parameters)
+    {
+        const string expectedParameterList = "(JSObject shaderProgram, JSObject vertexBuffer, Span<CustomVertexType> vertices, List<int> vertexAttributeLocations)";
+        if (parameters.Length != 4)
+        {
+            throw new InvalidOperationException($"Expected 4 parameters: {expectedParameterList}");
+        }
+        var isMatching = parameters[0].Type.Name == "JSObject" &&
+                         parameters[1].Type.Name == "JSObject" &&
+                         parameters[2].Type.Name == "Span" &&
+                         parameters[3].Type.Name == "List";
+        if (!isMatching)
+        {
+            throw new InvalidOperationException($"Expected parameter types to match: {expectedParameterList}");
+        }
+        var locationsParameter = parameters[3].Type;
+        if (locationsParameter is not INamedTypeSymbol listType
+            || listType.TypeArguments.Length != 1
+            || listType.TypeArguments[0].Name != "Int32")
+        {
+            throw new InvalidOperationException("Expected 4th parameter to be a List<int>");
+        }
     }
 
     static void GenerateSource(SourceProductionContext context, Model model)
