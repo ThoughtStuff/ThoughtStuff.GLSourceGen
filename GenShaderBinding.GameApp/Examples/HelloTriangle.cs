@@ -1,9 +1,17 @@
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.JavaScript;
 using GenShaderBinding.GameApp.GameFramework;
 
 namespace GenShaderBinding.GameApp.Examples;
 
-sealed class HelloTriangle : IGame
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+struct ColorVertex2(Vector2 position, Vector4 color)
+{
+    public Vector2 Position = position;
+    public Vector4 Color = color;
+}
+
+sealed partial class HelloTriangle : IGame
 {
     private JSObject? _shaderProgram;
     private JSObject? _positionBuffer;
@@ -13,46 +21,27 @@ sealed class HelloTriangle : IGame
 
     public string? OverlayText => "Hello, Triangle";
 
+    [GenShaderBinding.Generated]
+    partial void SetBufferData(JSObject shaderProgram,
+                               JSObject vertexBuffer,
+                               Span<ColorVertex2> vertices,
+                               List<int> vertexAttributeLocations);
+
     public void InitializeScene(IShaderLoader shaderLoader)
     {
         // Load the shader program
         _shaderProgram = shaderLoader.LoadShaderProgram("Basic/ColorPassthrough_vert", "Basic/ColorPassthrough_frag");
 
-        // POSITIONS
+        // Define the vertices for the triangle. Assume NDC coordinates [-1 ... 1].
+        Span<ColorVertex2> vertices =
+        [
+            new(new(0, 1), new(1, 0, 0, 1)),    // Red
+            new(new(-1, -1), new(0, 1, 0, 1)),  // Green
+            new(new(1, -1), new(0, 0, 1, 1))    // Blue
+        ];
         // Create a buffer for the triangle's vertex positions.
         _positionBuffer = GL.CreateBuffer();
-        GL.BindBuffer(GL.ARRAY_BUFFER, _positionBuffer);
-        // Define the vertex positions for the triangle. Assume NDC coordinates [-1 ... 1].
-        Span<float> positions =
-        [
-            0.0f, 1.0f,
-            -1.0f, -1.0f,
-            1.0f, -1.0f
-        ];
-        GL.BufferData(GL.ARRAY_BUFFER, positions, GL.STATIC_DRAW);
-        // Tell WebGL how to pull out the positions from the position buffer into the vertexPosition attribute.
-        var positionAttributeLocation = GL.GetAttribLocation(_shaderProgram, "a_VertexPosition");
-        GL.VertexAttribPointer(positionAttributeLocation, 2, GL.FLOAT, false, 0, 0);
-        GL.EnableVertexAttribArray(positionAttributeLocation);
-        _vertexAttributeLocations.Add(positionAttributeLocation);
-
-        // COLORS
-        // Create a buffer for the triangle's colors.
-        _colorBuffer = GL.CreateBuffer();
-        GL.BindBuffer(GL.ARRAY_BUFFER, _colorBuffer);
-        // Define the colors for each vertex of the triangle (Rainbow: Red, Green, Blue).
-        Span<float> colors =
-        [
-            1.0f, 0.0f, 0.0f, 1.0f, // Red
-            0.0f, 1.0f, 0.0f, 1.0f, // Green
-            0.0f, 0.0f, 1.0f, 1.0f  // Blue
-        ];
-        GL.BufferData(GL.ARRAY_BUFFER, colors, GL.STATIC_DRAW);
-        // Tell WebGL how to pull out the colors from the color buffer into the vertexColor attribute.
-        var colorAttributeLocation = GL.GetAttribLocation(_shaderProgram, "a_VertexColor");
-        GL.VertexAttribPointer(colorAttributeLocation, 4, GL.FLOAT, false, 0, 0);
-        GL.EnableVertexAttribArray(colorAttributeLocation);
-        _vertexAttributeLocations.Add(colorAttributeLocation);
+        SetBufferData(_shaderProgram, _positionBuffer, vertices, _vertexAttributeLocations);
 
         // Set the clear color to cornflower blue
         GL.ClearColor(0.392f, 0.584f, 0.929f, 1.0f);

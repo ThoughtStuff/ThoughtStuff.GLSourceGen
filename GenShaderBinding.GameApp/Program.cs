@@ -14,17 +14,17 @@ var glslVersion = GL.GetParameterString(GL.SHADING_LANGUAGE_VERSION);
 Console.WriteLine("GLSL Version: " + glslVersion);
 
 // Bootstrap our Game which handles input, updates, and rendering
-using var game = new HelloTetrahedron();
+// using var game = new HelloTetrahedron();
 
 // Find more examples in the Examples folder
 // The GameChanger allows you to switch between examples using the PageUp and PageDown keys
-// using var game = new GameChanger(
-//     new HelloTriangle(),
-//     new HelloQuad(),
-//     new HelloTextureMap(),
-//     new HelloTetrahedron(),
-//     new InstanceParticlesExample()
-// );
+using var game = new GameChanger(
+    new HelloTriangle(),
+    new HelloQuad(),
+    new HelloTextureMap(),
+    new HelloTetrahedron(),
+    new InstanceParticlesExample()
+);
 
 using var gameController = new GameController(game);
 await gameController.Start();
