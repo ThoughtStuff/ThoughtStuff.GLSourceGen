@@ -39,6 +39,7 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
             throw new InvalidOperationException("Expected a Span<T> parameter");
         }
         var vertexType = spanType.TypeArguments[0];
+        // TODO: vertexType should be a struct with public fields
         var vertexFields = vertexType.GetMembers()
                                      .OfType<IFieldSymbol>()
                                      .Select(f => new VertexField(f.Name, f.Type.Name))
@@ -65,7 +66,10 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
             namespace {{model.Namespace}};
             partial class {{model.ClassName}}
             {
-                partial void {{model.MethodName}}(JSObject shaderProgram, JSObject vertexBuffer, Span<{{model.VertexType}}> vertices)
+                partial void {{model.MethodName}}(JSObject shaderProgram,
+                                                  JSObject vertexBuffer,
+                                                  Span<{{model.VertexType}}> vertices,
+                                                  List<int> vertexAttributeLocations)
                 {
                     Console.WriteLine("Binding vertex buffer data");
                     // Print out Model members for debugging
@@ -98,6 +102,7 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
 
                     var {{location}} = GL.GetAttribLocation(shaderProgram, "{{glslVariableName}}");
                     GL.EnableVertexAttribArray({{location}});
+                    vertexAttributeLocations.Add({{location}});
                     GL.VertexAttribPointer({{location}},
                                            size: {{size}},
                                            type: GL.FLOAT,

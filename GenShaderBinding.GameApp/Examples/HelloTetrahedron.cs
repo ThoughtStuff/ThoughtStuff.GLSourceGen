@@ -33,7 +33,8 @@ sealed partial class HelloTetrahedron : IGame
     [GenShaderBinding.Generated]
     partial void BindVertexBufferData(JSObject shaderProgram,
                                       JSObject vertexBuffer,
-                                      Span<ColorVertex3> vertices);
+                                      Span<ColorVertex3> vertices,
+                                      List<int> vertexAttributeLocations);
 
     public void InitializeScene(IShaderLoader shaderLoader)
     {
@@ -67,7 +68,7 @@ sealed partial class HelloTetrahedron : IGame
 
         // Create and bind the vertex buffer
         _vertexBuffer = GL.CreateBuffer();
-        BindVertexBufferData(_shaderProgram, _vertexBuffer, vertices);
+        BindVertexBufferData(_shaderProgram, _vertexBuffer, vertices, _vertexAttributeLocations);
 
         // Enable depth testing
         GL.Enable(GL.DEPTH_TEST);
