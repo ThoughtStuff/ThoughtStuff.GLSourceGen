@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Embed any shader files as Resources so they can be loaded at runtime -->
+    <EmbeddedResource Include="Shaders\**\*.glsl" />
+  </ItemGroup>
+</Project>

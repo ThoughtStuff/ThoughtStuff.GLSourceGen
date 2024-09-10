@@ -1,0 +1,63 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "shell",
+      "label": "dotnet: build",
+      "command": "dotnet",
+      "args": ["build", "GenShaderBinding.GameApp.csproj"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": ["$msCompile"]
+    },
+    {
+      "type": "shell",
+      "label": "dotnet: run",
+      "command": "dotnet",
+      "args": ["run", "--project", "GenShaderBinding.GameApp.csproj"],
+      "problemMatcher": ["$msCompile"]
+    },
+    {
+      "label": "dotnet: publish wasm",
+      "type": "shell",
+      "command": "dotnet",
+      "args": [
+        "publish",
+        "GenShaderBinding.GameApp.csproj",
+        "-r",
+        "browser-wasm",
+        "-c",
+        "Release"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "dotnet: publish wasm and show output",
+      "type": "shell",
+      "windows": {
+        "command": "explorer",
+        "args": ["bin\\Release\\net8.0\\publish"]
+      },
+      "osx": {
+        "command": "open",
+        "args": ["bin/Release/net8.0/publish"]
+      },
+      "linux": {
+        "command": "xdg-open",
+        "args": ["bin/Release/net8.0/publish"]
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "dependsOn": "dotnet: publish wasm"
+    }
+  ]
+}
