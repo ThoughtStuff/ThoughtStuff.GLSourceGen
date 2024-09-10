@@ -14,7 +14,7 @@ var glslVersion = GL.GetParameterString(GL.SHADING_LANGUAGE_VERSION);
 Console.WriteLine("GLSL Version: " + glslVersion);
 
 // Bootstrap our Game which handles input, updates, and rendering
-using var game = new ExampleGame();
+using var game = new HelloTetrahedron();
 
 // Find more examples in the Examples folder
 // The GameChanger allows you to switch between examples using the PageUp and PageDown keys

@@ -9,4 +9,10 @@
     <!-- Embed any shader files as Resources so they can be loaded at runtime -->
     <EmbeddedResource Include="Shaders\**\*.glsl" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GenShaderBinding.SourceGeneration\GenShaderBinding.SourceGeneration.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
 </Project>

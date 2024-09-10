@@ -11,7 +11,7 @@ struct ColorVertex3(Vector3 position, Vector3 color)
     public Vector3 Color = color;
 }
 
-sealed class HelloTetrahedron : IGame
+sealed partial class HelloTetrahedron : IGame
 {
     private float _rotationAngleX = 0f;
     private float _rotationAngleY = 0f;
@@ -20,6 +20,9 @@ sealed class HelloTetrahedron : IGame
     private JSObject? _projectionLocation;
     private JSObject? _vertexBuffer;
     private readonly List<int> _vertexAttributeLocations = [];
+
+    [GeneratedNamespace.Generated]
+    partial void DoGeneratedStuff();
 
 
     public string? OverlayText => "Hello, Tetrahedron";
@@ -32,6 +35,8 @@ sealed class HelloTetrahedron : IGame
 
     public void InitializeScene(IShaderLoader shaderLoader)
     {
+        DoGeneratedStuff();
+
         // Load shader program from files using IShaderLoader
         _shaderProgram = shaderLoader.LoadShaderProgram("Perspective3D/ColorPassthrough_vert", "Basic/ColorPassthrough_frag");
 

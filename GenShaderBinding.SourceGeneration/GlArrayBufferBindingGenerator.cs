@@ -45,6 +45,7 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
                     partial void {{model.MethodName}}()
                     {
                         // generated code
+                        Console.WriteLine("Hello from generated code!");
                     }
                 }
                 """, Encoding.UTF8);
