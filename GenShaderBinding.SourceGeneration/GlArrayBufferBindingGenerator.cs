@@ -73,11 +73,11 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
                 {
                     Console.WriteLine("Binding vertex buffer data");
                     // Print out Model members for debugging
-                    Console.WriteLine($"Model.Namespace: {{model.Namespace}}");
-                    Console.WriteLine($"Model.ClassName: {{model.ClassName}}");
-                    Console.WriteLine($"Model.MethodName: {{model.MethodName}}");
-                    Console.WriteLine($"Model.VertexType: {{model.VertexType}}");
-                    Console.WriteLine("Model.VertexFields: {{string.Join(", ", model.VertexFields.Select(f => $"{f.Name}: {f.Type}"))}}");
+                    // Console.WriteLine("- Namespace: {{model.Namespace}}");
+                    // Console.WriteLine("- ClassName: {{model.ClassName}}");
+                    // Console.WriteLine("- MethodName: {{model.MethodName}}");
+                    Console.WriteLine("- VertexType: {{model.VertexType}}");
+                    Console.WriteLine("- VertexFields: {{string.Join(", ", model.VertexFields.Select(f => $"{f.Name}: {f.Type}"))}}");
 
                     GL.BindBuffer(GL.ARRAY_BUFFER, vertexBuffer);
                     GL.BufferData(GL.ARRAY_BUFFER, vertices, GL.STATIC_DRAW);
@@ -99,7 +99,7 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
                 "Vector2" => 2,
                 "Vector3" => 3,
                 "Vector4" => 4,
-                _ => throw new NotSupportedException($"Unsupported field type: {field.Type}")
+                _ => throw new NotSupportedException($"Unsupported field type in {vertexType}: {field.Type}")
             };
             sourceBuilder.AppendLine($$"""
 
@@ -123,8 +123,6 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
         }
 
         var closing = $$"""
-
-                    Console.WriteLine("Finished");
                 }
             }
 

@@ -49,21 +49,21 @@ sealed partial class HelloTetrahedron : IGame
         Span<ColorVertex3> vertices =
         [
             // Red face
-            new ColorVertex3(new(0.5f, 0.5f, 0.5f), new(1f, 0f, 0f)),
-            new ColorVertex3(new(-0.5f, -0.5f, 0.5f), new(1f, 0f, 0f)),
-            new ColorVertex3(new(-0.5f, 0.5f, -0.5f), new(1f, 0f, 0f)),
+            new (new(0.5f, 0.5f, 0.5f), new(1f, 0f, 0f)),
+            new (new(-0.5f, -0.5f, 0.5f), new(1f, 0f, 0f)),
+            new (new(-0.5f, 0.5f, -0.5f), new(1f, 0f, 0f)),
             // Green face
-            new ColorVertex3(new(0.5f, -0.5f, -0.5f), new(0f, 1f, 0f)),
-            new ColorVertex3(new(-0.5f, -0.5f, 0.5f), new(0f, 1f, 0f)),
-            new ColorVertex3(new(-0.5f, 0.5f, -0.5f), new(0f, 1f, 0f)),
+            new (new(0.5f, -0.5f, -0.5f), new(0f, 1f, 0f)),
+            new (new(-0.5f, -0.5f, 0.5f), new(0f, 1f, 0f)),
+            new (new(-0.5f, 0.5f, -0.5f), new(0f, 1f, 0f)),
             // Blue face
-            new ColorVertex3(new(0.5f, 0.5f, 0.5f), new(0f, 0f, 1f)),
-            new ColorVertex3(new(-0.5f, -0.5f, 0.5f), new(0f, 0f, 1f)),
-            new ColorVertex3(new(0.5f, -0.5f, -0.5f), new(0f, 0f, 1f)),
+            new (new(0.5f, 0.5f, 0.5f), new(0f, 0f, 1f)),
+            new (new(-0.5f, -0.5f, 0.5f), new(0f, 0f, 1f)),
+            new (new(0.5f, -0.5f, -0.5f), new(0f, 0f, 1f)),
             // Yellow face
-            new ColorVertex3(new(0.5f, 0.5f, 0.5f), new(1f, 1f, 0f)),
-            new ColorVertex3(new(0.5f, -0.5f, -0.5f), new(1f, 1f, 0f)),
-            new ColorVertex3(new(-0.5f, 0.5f, -0.5f), new(1f, 1f, 0f))
+            new (new(0.5f, 0.5f, 0.5f), new(1f, 1f, 0f)),
+            new (new(0.5f, -0.5f, -0.5f), new(1f, 1f, 0f)),
+            new (new(-0.5f, 0.5f, -0.5f), new(1f, 1f, 0f))
         ];
 
         // Create and bind the vertex buffer
