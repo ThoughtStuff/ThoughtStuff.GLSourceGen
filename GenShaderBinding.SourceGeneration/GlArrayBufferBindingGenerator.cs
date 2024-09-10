@@ -58,6 +58,7 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
     static void GenerateSource(SourceProductionContext context, Model model)
     {
         var preamble = $$"""
+
             using System.Runtime.InteropServices;
             using System.Runtime.InteropServices.JavaScript;
 
@@ -76,6 +77,7 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
 
                     GL.BindBuffer(GL.ARRAY_BUFFER, vertexBuffer);
                     GL.BufferData(GL.ARRAY_BUFFER, vertices, GL.STATIC_DRAW);
+
             """;
 
         var sourceBuilder = new StringBuilder(preamble);
@@ -84,22 +86,34 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
         {
             var glslVariableName = $"a_Vertex{field.Name}";
             var location = $"{field.Name}Location";
+            int size = field.Type switch
+            {
+                "Single" => 1,
+                "Vector2" => 2,
+                "Vector3" => 3,
+                "Vector4" => 4,
+                _ => throw new NotSupportedException($"Unsupported field type: {field.Type}")
+            };
             sourceBuilder.AppendLine($$"""
+
                     var {{location}} = GL.GetAttribLocation(shaderProgram, "{{glslVariableName}}");
                     GL.EnableVertexAttribArray({{location}});
                     GL.VertexAttribPointer({{location}},
-                                           size: 3,
+                                           size: {{size}},
                                            type: GL.FLOAT,
                                            normalized: false,
                                            stride: Marshal.SizeOf<{{vertexType}}>(),
                                            offset: Marshal.OffsetOf<{{vertexType}}>(nameof({{vertexType}}.{{field.Name}})).ToInt32());
+
                 """);
         }
 
         var closing = $$"""
+
                     Console.WriteLine("Finished");
                 }
             }
+
             """;
         sourceBuilder.Append(closing);
         var sourceText = SourceText.From(sourceBuilder.ToString(), Encoding.UTF8);

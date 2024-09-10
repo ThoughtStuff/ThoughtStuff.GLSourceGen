@@ -69,29 +69,6 @@ sealed partial class HelloTetrahedron : IGame
         _vertexBuffer = GL.CreateBuffer();
         BindVertexBufferData(_shaderProgram, _vertexBuffer, vertices);
 
-        // GL.BindBuffer(GL.ARRAY_BUFFER, _vertexBuffer);
-        // GL.BufferData(GL.ARRAY_BUFFER, vertices, GL.STATIC_DRAW);
-
-        // var positionLocation = GL.GetAttribLocation(_shaderProgram, "a_VertexPosition");
-        // GL.EnableVertexAttribArray(positionLocation);
-        // _vertexAttributeLocations.Add(positionLocation);
-        // GL.VertexAttribPointer(positionLocation,
-        //                        size: 3,
-        //                        type: GL.FLOAT,
-        //                        normalized: false,
-        //                        stride: Marshal.SizeOf<ColorVertex3>(),
-        //                        offset: Marshal.OffsetOf<ColorVertex3>(nameof(ColorVertex3.Position)).ToInt32());
-
-        // var colorLocation = GL.GetAttribLocation(_shaderProgram, "a_VertexColor");
-        // GL.EnableVertexAttribArray(colorLocation);
-        // _vertexAttributeLocations.Add(colorLocation);
-        // GL.VertexAttribPointer(colorLocation,
-        //                        size: 3,
-        //                        type: GL.FLOAT,
-        //                        normalized: false,
-        //                        stride: Marshal.SizeOf<ColorVertex3>(),
-        //                        offset: Marshal.OffsetOf<ColorVertex3>(nameof(ColorVertex3.Color)).ToInt32());
-
         // Enable depth testing
         GL.Enable(GL.DEPTH_TEST);
 
