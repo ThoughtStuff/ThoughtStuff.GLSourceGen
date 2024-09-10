@@ -1,14 +1,22 @@
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.JavaScript;
 using GenShaderBinding.GameApp.GameFramework;
 
 namespace GenShaderBinding.GameApp.Examples;
+
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+struct TextureVertex2(Vector2 position, Vector2 textureCoord)
+{
+    public Vector2 Position = position;
+    public Vector2 TextureCoord = textureCoord;
+}
 
 /// <summary>
 /// Demonstrates texture-mapping a quad.
 /// The texture map has transparent pixels which allow the background color to show through.
 /// An initial low-res texture is loaded first, then replaced with a high-res texture.
 /// </summary>
-sealed class HelloTextureMap : IGame
+sealed partial class HelloTextureMap : IGame
 {
     private JSObject? _shaderProgram;
     private JSObject? _lowResTextureId;
@@ -19,6 +27,12 @@ sealed class HelloTextureMap : IGame
 
 
     public string? OverlayText => "Hello, Texture Map";
+
+    [Generated]
+    partial void BindVertexBufferData(JSObject shaderProgram,
+                                      JSObject vertexBuffer,
+                                      Span<TextureVertex2> vertices,
+                                      List<int> vertexAttributeLocations);
 
     public async Task LoadAssetsEssentialAsync(IShaderLoader shaderLoader, ITextureLoader textureLoader)
     {
@@ -45,43 +59,17 @@ sealed class HelloTextureMap : IGame
         if (_shaderProgram is null)
             throw new InvalidOperationException("Shader program not loaded.");
 
-        // POSITIONS
-        // Create a buffer for the quad's vertex positions.
+        // Define the vertices for the quad. Assume NDC coordinates [-1 ... 1].
+        Span<TextureVertex2> vertices =
+        [
+            new(new(-1, 1), new(0, 0)),
+            new(new(-1, -1), new(0, 1)),
+            new(new(1, 1), new(1, 0)),
+            new(new(1, -1), new(1, 1))
+        ];
+        // Create a buffer for the quad's vertices
         _positionBuffer = GL.CreateBuffer();
-        GL.BindBuffer(GL.ARRAY_BUFFER, _positionBuffer);
-        // Define the vertex positions for the quad. Assume NDC coordinates [-1 ... 1].
-        Span<float> positions =
-        [
-            -1.0f, 1.0f,
-            -1.0f, -1.0f,
-            1.0f, 1.0f,
-            1.0f, -1.0f
-        ];
-        GL.BufferData(GL.ARRAY_BUFFER, positions, GL.STATIC_DRAW);
-        // Tell WebGL how to pull out the positions from the position buffer into the vertexPosition attribute.
-        var positionAttributeLocation = GL.GetAttribLocation(_shaderProgram, "a_VertexPosition");
-        GL.VertexAttribPointer(positionAttributeLocation, 2, GL.FLOAT, false, 0, 0);
-        GL.EnableVertexAttribArray(positionAttributeLocation);
-        _vertexAttributeLocations.Add(positionAttributeLocation);
-
-        // TEXTURE COORDINATES
-        // Create a buffer for the quad's texture coordinates.
-        _textureCoordBuffer = GL.CreateBuffer();
-        GL.BindBuffer(GL.ARRAY_BUFFER, _textureCoordBuffer);
-        // Define the texture coordinates for each vertex of the quad.
-        Span<float> textureCoords =
-        [
-            0.0f, 0.0f,
-            0.0f, 1.0f,
-            1.0f, 0.0f,
-            1.0f, 1.0f
-        ];
-        GL.BufferData(GL.ARRAY_BUFFER, textureCoords, GL.STATIC_DRAW);
-        // Tell WebGL how to pull out the texture coordinates from the textureCoord buffer into the textureCoord attribute.
-        var textureCoordAttributeLocation = GL.GetAttribLocation(_shaderProgram, "a_TextureCoord");
-        GL.VertexAttribPointer(textureCoordAttributeLocation, 2, GL.FLOAT, false, 0, 0);
-        GL.EnableVertexAttribArray(textureCoordAttributeLocation);
-        _vertexAttributeLocations.Add(textureCoordAttributeLocation);
+        BindVertexBufferData(_shaderProgram, _positionBuffer, vertices, _vertexAttributeLocations);
 
         // Enable alpha blending for the textures which have an alpha channel
         GL.Enable(GL.BLEND);

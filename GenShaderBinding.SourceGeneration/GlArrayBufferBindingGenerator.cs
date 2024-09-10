@@ -101,6 +101,8 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
             sourceBuilder.AppendLine($$"""
 
                     var {{location}} = GL.GetAttribLocation(shaderProgram, "{{glslVariableName}}");
+                    if ({{location}} == -1)
+                        throw new InvalidOperationException($"Could not find attribute location for {{glslVariableName}}. Expected a vertex shader input variable named {{glslVariableName}}.");
                     GL.EnableVertexAttribArray({{location}});
                     vertexAttributeLocations.Add({{location}});
                     GL.VertexAttribPointer({{location}},
