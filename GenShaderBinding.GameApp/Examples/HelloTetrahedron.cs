@@ -21,9 +21,6 @@ sealed partial class HelloTetrahedron : IGame
     private JSObject? _vertexBuffer;
     private readonly List<int> _vertexAttributeLocations = [];
 
-    [GeneratedNamespace.Generated]
-    partial void DoGeneratedStuff();
-
 
     public string? OverlayText => "Hello, Tetrahedron";
 
@@ -33,10 +30,13 @@ sealed partial class HelloTetrahedron : IGame
         return Task.CompletedTask;
     }
 
+    [GenShaderBinding.Generated]
+    partial void BindVertexBufferData(JSObject shaderProgram,
+                                      JSObject vertexBuffer,
+                                      Span<ColorVertex3> vertices);
+
     public void InitializeScene(IShaderLoader shaderLoader)
     {
-        DoGeneratedStuff();
-
         // Load shader program from files using IShaderLoader
         _shaderProgram = shaderLoader.LoadShaderProgram("Perspective3D/ColorPassthrough_vert", "Basic/ColorPassthrough_frag");
 
@@ -67,28 +67,7 @@ sealed partial class HelloTetrahedron : IGame
 
         // Create and bind the vertex buffer
         _vertexBuffer = GL.CreateBuffer();
-        GL.BindBuffer(GL.ARRAY_BUFFER, _vertexBuffer);
-        GL.BufferData(GL.ARRAY_BUFFER, vertices, GL.STATIC_DRAW);
-
-        var positionLocation = GL.GetAttribLocation(_shaderProgram, "a_VertexPosition");
-        GL.EnableVertexAttribArray(positionLocation);
-        _vertexAttributeLocations.Add(positionLocation);
-        GL.VertexAttribPointer(positionLocation,
-                               size: 3,
-                               type: GL.FLOAT,
-                               normalized: false,
-                               stride: Marshal.SizeOf<ColorVertex3>(),
-                               offset: Marshal.OffsetOf<ColorVertex3>(nameof(ColorVertex3.Position)).ToInt32());
-
-        var colorLocation = GL.GetAttribLocation(_shaderProgram, "a_VertexColor");
-        GL.EnableVertexAttribArray(colorLocation);
-        _vertexAttributeLocations.Add(colorLocation);
-        GL.VertexAttribPointer(colorLocation,
-                               size: 3,
-                               type: GL.FLOAT,
-                               normalized: false,
-                               stride: Marshal.SizeOf<ColorVertex3>(),
-                               offset: Marshal.OffsetOf<ColorVertex3>(nameof(ColorVertex3.Color)).ToInt32());
+        BindVertexBufferData(_shaderProgram, _vertexBuffer, vertices);
 
         // Enable depth testing
         GL.Enable(GL.DEPTH_TEST);
