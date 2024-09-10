@@ -8,7 +8,7 @@ namespace GenShaderBinding.GameApp.Examples.InstanceParticles;
 // Animated Arrows by SpikerMan
 // https://spikerman.itch.io/animated-arrows-cursors
 
-sealed class InstanceParticlesExample : IGame
+sealed partial class InstanceParticlesExample : IGame
 {
     private const int SpawnParticleCount = 25;
     private const float ScaleMin = 0.01f;
@@ -73,6 +73,12 @@ sealed class InstanceParticlesExample : IGame
         GL.Uniform1f(uPaddingBottomLoc, paddingBottom);
     }
 
+    [Generated]
+    partial void BindVertexBufferData(JSObject shaderProgram,
+                                      JSObject vertexBuffer,
+                                      Span<TextureVertex2> vertices,
+                                      List<int> vertexAttributeLocations);
+
     /// <inheritdoc/>
     public void InitializeScene(IShaderLoader shaderLoader)
     {
@@ -80,48 +86,19 @@ sealed class InstanceParticlesExample : IGame
             throw new InvalidOperationException("Shader program not initialized");
 
         // Define quad vertices with positions and texture coordinates
-        Span<float> vertices =
+        Span<TextureVertex2> vertices =
         [
-            // First Triangle
-            -0.5f,  0.5f,  0.0f, 1.0f, // Top-left
-            0.5f,  0.5f,  1.0f, 1.0f, // Top-right
-            -0.5f, -0.5f,  0.0f, 0.0f, // Bottom-left
-
-            // Second Triangle
-            0.5f,  0.5f,  1.0f, 1.0f, // Top-right
-            0.5f, -0.5f,  1.0f, 0.0f, // Bottom-right
-            -0.5f, -0.5f,  0.0f, 0.0f  // Bottom-left
+            new(new(-0.5f, 0.5f), new(0.0f, 1.0f)), // Top-left
+            new(new(0.5f, 0.5f), new(1.0f, 1.0f)), // Top-right
+            new(new(-0.5f, -0.5f), new(0.0f, 0.0f)), // Bottom-left
+            new(new(0.5f, 0.5f), new(1.0f, 1.0f)), // Top-right
+            new(new(0.5f, -0.5f), new(1.0f, 0.0f)), // Bottom-right
+            new(new(-0.5f, -0.5f), new(0.0f, 0.0f)) // Bottom-left
         ];
 
         // Create and bind the position and texture buffer for the quad vertices
         _positionBuffer = GL.CreateBuffer();
-        GL.BindBuffer(GL.ARRAY_BUFFER, _positionBuffer);
-        GL.BufferData(GL.ARRAY_BUFFER, vertices, GL.STATIC_DRAW);
-        _buffers.Add(_positionBuffer);
-
-        // Get attribute locations for position and texture coordinates
-        var posLoc = GL.GetAttribLocation(_shaderProgram, "a_VertexPosition");
-        var texLoc = GL.GetAttribLocation(_shaderProgram, "a_TextureCoord");
-
-        // Enable the position attribute
-        GL.VertexAttribPointer(index: posLoc,
-                               size: 2,
-                               type: GL.FLOAT,
-                               normalized: false,
-                               stride: 4 * sizeof(float),
-                               offset: 0);
-        GL.EnableVertexAttribArray(posLoc);
-        _vertexAttributeLocations.Add(posLoc);
-
-        // Enable the texture coordinate attribute
-        GL.VertexAttribPointer(index: texLoc,
-                               size: 2,
-                               type: GL.FLOAT,
-                               normalized: false,
-                               stride: 4 * sizeof(float),
-                               offset: 2 * sizeof(float));
-        GL.EnableVertexAttribArray(texLoc);
-        _vertexAttributeLocations.Add(texLoc);
+        BindVertexBufferData(_shaderProgram, _positionBuffer, vertices, _vertexAttributeLocations);
 
         // Create a buffer for instance data (translation and scale)
         _instanceVBO = GL.CreateBuffer();
