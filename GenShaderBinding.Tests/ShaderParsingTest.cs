@@ -5,14 +5,29 @@ namespace GenShaderBinding.Tests;
 
 public class ShaderParsingTest
 {
+    [Fact(DisplayName = "One Liner")]
+    public void OneLine()
+    {
+        // Arrange
+        var shaderSource = "attribute vec3 a_Position;";
+
+        // Act
+        var result = ExtractAttributesFromSource(shaderSource);
+
+        // Assert
+        result.Should().BeEquivalentTo(new List<GlslAttribute>
+        {
+            new("a_Position", "vec3")
+        });
+    }
+
     [Fact(DisplayName = "Extract single attribute with correct type and name")]
     public void Extract_SingleAttribute_CorrectTypeAndName()
     {
         // Arrange
         var shaderSource = @"
-            #version 100
-
             attribute vec3 a_Position;
+
             void main(void) {
                 gl_Position = vec4(a_Position, 1.0);
             }";
@@ -77,6 +92,16 @@ public class ShaderParsingTest
             attribute vec4 p;
             const float PI = 3.14159;
             int attribute_count = 3;
+            // these are all commented:
+            /*
+            attribute vec4 a_Color;
+            attribute vec2 a_TexCoord;
+            */
+            /* attribute vec3 a_Normal; */
+
+            /* diabolical case
+            // */
+            attribute vec4 q;
 
             void main(void) {
                 gl_Position = p;
@@ -88,7 +113,8 @@ public class ShaderParsingTest
         // Assert
         result.Should().BeEquivalentTo(new List<GlslAttribute>
         {
-            new("p", "vec4")
+            new("p", "vec4"),
+            new("q", "vec4"),
         });
     }
 }
