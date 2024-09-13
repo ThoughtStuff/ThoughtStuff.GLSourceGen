@@ -73,12 +73,12 @@ sealed partial class InstanceParticlesExample : IGame
         GL.Uniform1f(uPaddingBottomLoc, paddingBottom);
     }
 
-    [Generated]
+    [Generated("Shaders/Transformed2D/SpriteSheet_vert.glsl")]
     partial void BindVertexBufferData(JSObject shaderProgram,
                                       JSObject vertexBuffer,
                                       Span<TextureVertex2> vertices,
                                       List<int> vertexAttributeLocations);
-    [Generated]
+    [Generated("Shaders/Transformed2D/SpriteSheet_vert.glsl")]
     partial void BindVertexBufferData(JSObject shaderProgram,
                                       JSObject vertexBuffer,
                                       Span<InstanceData> vertices,

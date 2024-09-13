@@ -28,7 +28,7 @@ sealed partial class HelloTextureMap : IGame
 
     public string? OverlayText => "Hello, Texture Map";
 
-    [Generated]
+    [Generated("Shaders/Basic/TextureUnlit_vert.glsl")]
     partial void BindVertexBufferData(JSObject shaderProgram,
                                       JSObject vertexBuffer,
                                       Span<TextureVertex2> vertices,

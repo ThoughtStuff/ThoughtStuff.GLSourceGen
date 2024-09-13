@@ -11,6 +11,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Include shader files as Additional Files so they can be used by source generation -->
+    <AdditionalFiles Include="Shaders\**\*.glsl" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\GenShaderBinding.SourceGeneration\GenShaderBinding.SourceGeneration.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />

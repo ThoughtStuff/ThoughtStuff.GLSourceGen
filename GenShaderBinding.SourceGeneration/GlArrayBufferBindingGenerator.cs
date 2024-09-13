@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -14,23 +15,49 @@ namespace GenShaderBinding.SourceGeneration;
 public class GlArrayBufferBindingGenerator : IIncrementalGenerator
 {
     private record VertexField(string Name, string Type);
-    private record Model(string Namespace, string ClassName, string MethodName, string VertexType, List<VertexField> VertexFields);
+    private record Model(string ShaderPath, string Namespace, string ClassName, string MethodName, string VertexType, List<VertexField> VertexFields);
+
+    // TODO: convert exceptions to build errors
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         DeclareGenerationAttribute(context);
 
-        var pipeline = context.SyntaxProvider.ForAttributeWithMetadataName(
+        var shaderFiles =
+            context.AdditionalTextsProvider.Where(
+                file => file.Path.EndsWith("_vert.glsl", StringComparison.OrdinalIgnoreCase));
+        // file.Path.Contains("Basic") &&
+        // file.Path.EndsWith("ColorPassthrough_vert.glsl", StringComparison.OrdinalIgnoreCase));
+        var shaderSourcePipeline = shaderFiles.Select((text, cancellationToken) =>
+        (path: text.Path, content: text.GetText(cancellationToken)?.ToString()))
+        .Select((tuple, cancellationToken) =>
+        {
+            var (path, content) = tuple;
+            // TODO: Convert path to relative to the project root
+            path = path.Replace("\\", "/");
+            var glslVariables = ShaderParsing.ExtractAttributesFromSource(content);
+            return new KeyValuePair<string, string>(path, content);
+        })
+        .Collect();
+
+        var attributePipeline = context.SyntaxProvider.ForAttributeWithMetadataName(
             fullyQualifiedMetadataName: "GenShaderBinding.GeneratedAttribute",
             predicate: static (syntaxNode, cancellationToken) => syntaxNode is BaseMethodDeclarationSyntax,
             transform: CreateModel
         );
 
-        context.RegisterSourceOutput(pipeline, GenerateSource);
+        context.RegisterSourceOutput(
+            attributePipeline.Combine(shaderSourcePipeline),
+            GenerateSource);
     }
 
     static Model CreateModel(GeneratorAttributeSyntaxContext context, CancellationToken cancellationToken)
     {
+        var shaderPath = context.Attributes[0].ConstructorArguments
+            // .FirstOrDefault(pair => pair.Key == "ShaderPath")
+            .First()
+            .Value as string
+            ?? throw new InvalidOperationException("ShaderPath argument is required");
         var containingClass = context.TargetSymbol.ContainingType;
         var methodSymbol = (IMethodSymbol)context.TargetSymbol;
         // Verify parameters are as expected
@@ -54,6 +81,7 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
         var format = SymbolDisplayFormat.FullyQualifiedFormat.WithGlobalNamespaceStyle(
             SymbolDisplayGlobalNamespaceStyle.Omitted);
         return new Model(
+            ShaderPath: shaderPath,
             // TODO: handle the case where the type is in a global namespace, nested, etc.
             Namespace: containingClass.ContainingNamespace?.ToDisplayString(format),
             ClassName: containingClass.Name,
@@ -86,8 +114,18 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
         }
     }
 
-    static void GenerateSource(SourceProductionContext context, Model model)
+    private static void GenerateSource(SourceProductionContext context,
+                                       (Model model, ImmutableArray<KeyValuePair<string, string>> shaderSources) input)
     {
+        var (model, shaderSourcesArray) = input;
+        var shaderSources = shaderSourcesArray.ToDictionary(pair => pair.Key, pair => pair.Value);
+
+        // TODO: var shaderSource = shaderSources[model.ShaderPath];
+        var shaderSource = shaderSources.First(kvp => kvp.Key.Contains(model.ShaderPath)).Value;
+        var shaderAttributeVariables =
+            ShaderParsing.ExtractAttributesFromSource(shaderSource);
+        var shaderVariableNames = shaderAttributeVariables.Select(a => a.Name).ToList();
+
         var preamble = $$"""
 
             using System.Runtime.InteropServices;
@@ -101,6 +139,7 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
                                                   Span<{{model.VertexType}}> vertices,
                                                   List<int> vertexAttributeLocations)
                 {
+                    Console.WriteLine(@"Shader variable names: {{string.Join(", ", shaderVariableNames)}}");
                     Console.WriteLine("Binding vertex buffer data");
                     // Print out Model members for debugging
                     // Console.WriteLine("- Namespace: {{model.Namespace}}");
@@ -118,10 +157,11 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
         var vertexType = model.VertexType;
         foreach (var field in model.VertexFields)
         {
-            // 3 Guesses at the GLSL variable name
-            var glslVariableName1 = $"a_{field.Name}";
-            var glslVariableName2 = $"a_Vertex{field.Name}";
-            var glslVariableName3 = $"a_Instance{field.Name}";
+            // Match C# field name to GLSL variable name
+            var glslVariableName = shaderVariableNames.FirstOrDefault(v => v.Contains(field.Name))
+                                   ?? throw new InvalidOperationException($"Could not find GLSL variable name for {field.Name}");
+            // TODO: verify the types are compatible
+            shaderVariableNames.Remove(glslVariableName);
             var location = $"{field.Name}Location";
             int size = field.Type switch
             {
@@ -133,13 +173,9 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
             };
             sourceBuilder.AppendLine($$"""
 
-                    var {{location}} = GL.GetAttribLocation(shaderProgram, "{{glslVariableName1}}");
+                    var {{location}} = GL.GetAttribLocation(shaderProgram, "{{glslVariableName}}");
                     if ({{location}} == -1)
-                        {{location}} = GL.GetAttribLocation(shaderProgram, "{{glslVariableName2}}");
-                    if ({{location}} == -1)
-                        {{location}} = GL.GetAttribLocation(shaderProgram, "{{glslVariableName3}}");
-                    if ({{location}} == -1)
-                        throw new InvalidOperationException($"Could not find attribute location for {{glslVariableName1}}. Expected a vertex shader input variable named {{glslVariableName1}}.");
+                        throw new InvalidOperationException($"Could not find attribute location for {{glslVariableName}}.");
                     GL.EnableVertexAttribArray({{location}});
                     vertexAttributeLocations.Add({{location}});
                     GL.VertexAttribPointer({{location}},
@@ -172,6 +208,12 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
                     [AttributeUsage(AttributeTargets.Method)]
                     internal sealed class GeneratedAttribute : Attribute
                     {
+                        public string ShaderPath { get; }
+
+                        public GeneratedAttribute(string shaderPath)
+                        {
+                            ShaderPath = shaderPath;
+                        }
                     }
                 }
                 """, Encoding.UTF8)));

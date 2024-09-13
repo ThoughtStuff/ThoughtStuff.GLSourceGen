@@ -30,7 +30,7 @@ sealed partial class HelloTetrahedron : IGame
         return Task.CompletedTask;
     }
 
-    [GenShaderBinding.Generated]
+    [Generated("Shaders/Perspective3D/ColorPassthrough_vert.glsl")]
     partial void BindVertexBufferData(JSObject shaderProgram,
                                       JSObject vertexBuffer,
                                       Span<ColorVertex3> vertices,

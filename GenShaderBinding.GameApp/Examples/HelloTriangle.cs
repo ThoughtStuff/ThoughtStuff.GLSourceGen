@@ -21,7 +21,7 @@ sealed partial class HelloTriangle : IGame
 
     public string? OverlayText => "Hello, Triangle";
 
-    [GenShaderBinding.Generated]
+    [Generated("Shaders/Basic/ColorPassthrough_vert.glsl")]
     partial void SetBufferData(JSObject shaderProgram,
                                JSObject vertexBuffer,
                                Span<ColorVertex2> vertices,

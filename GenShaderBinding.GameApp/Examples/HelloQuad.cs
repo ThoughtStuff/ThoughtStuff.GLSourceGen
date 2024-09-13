@@ -12,7 +12,7 @@ sealed partial class HelloQuad : IGame
 
     public string? OverlayText => "Hello, Quad";
 
-    [Generated]
+    [Generated("Shaders/Basic/ColorPassthrough_vert.glsl")]
     partial void BindVertexBufferData(JSObject shaderProgram,
                                       JSObject vertexBuffer,
                                       Span<ColorVertex2> vertices,
