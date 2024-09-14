@@ -6,6 +6,8 @@
         "colour",
         "glsl",
         "lowres",
+        "nameof",
+        "struct",
         "texcoord"
     ]
 }
