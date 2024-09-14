@@ -1,3 +1,5 @@
+# ThoughtStuff.GLSourceGen
+
 Generates calls to
 
 - `GL.BindBuffer`

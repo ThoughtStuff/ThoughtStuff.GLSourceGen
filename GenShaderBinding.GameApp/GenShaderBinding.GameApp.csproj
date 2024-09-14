@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\GenShaderBinding.SourceGeneration\GenShaderBinding.SourceGeneration.csproj"
+    <ProjectReference Include="..\ThoughtStuff.GLSourceGen\ThoughtStuff.GLSourceGen.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
   </ItemGroup>

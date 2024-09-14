@@ -1,4 +1,4 @@
-using GenShaderBinding.SourceGeneration;
+using ThoughtStuff.GLSourceGen;
 
 namespace GenShaderBinding.Tests;
 

@@ -3,7 +3,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace GenShaderBinding.SourceGeneration;
+namespace ThoughtStuff.GLSourceGen;
 
 public static class ShaderParsing
 {

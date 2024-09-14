@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace GenShaderBinding.SourceGeneration;
+namespace ThoughtStuff.GLSourceGen;
 
 /// <summary>
 /// Responsible for matching input variables in the shader source code with the

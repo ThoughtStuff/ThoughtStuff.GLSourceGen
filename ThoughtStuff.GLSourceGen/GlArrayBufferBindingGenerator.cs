@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 
-namespace GenShaderBinding.SourceGeneration;
+namespace ThoughtStuff.GLSourceGen;
 
 [Generator]
 public class GlArrayBufferBindingGenerator : IIncrementalGenerator

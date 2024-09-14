@@ -1,5 +1,5 @@
-using GenShaderBinding.SourceGeneration;
-using static GenShaderBinding.SourceGeneration.ShaderParsing;
+using ThoughtStuff.GLSourceGen;
+using static ThoughtStuff.GLSourceGen.ShaderParsing;
 
 namespace GenShaderBinding.Tests;
 
