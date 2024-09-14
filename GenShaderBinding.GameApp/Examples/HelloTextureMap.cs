@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.JavaScript;
 using GenShaderBinding.GameApp.GameFramework;
+using ThoughtStuff.GLSourceGen;
 
 namespace GenShaderBinding.GameApp.Examples;
 
@@ -28,7 +29,7 @@ sealed partial class HelloTextureMap : IGame
 
     public string? OverlayText => "Hello, Texture Map";
 
-    [Generated("Shaders/Basic/TextureUnlit_vert.glsl")]
+    [SetupVertexAttrib("Shaders/Basic/TextureUnlit_vert.glsl")]
     partial void BindVertexBufferData(JSObject shaderProgram,
                                       JSObject vertexBuffer,
                                       Span<TextureVertex2> vertices,

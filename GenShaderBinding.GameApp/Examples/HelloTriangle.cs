@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.JavaScript;
 using GenShaderBinding.GameApp.GameFramework;
+using ThoughtStuff.GLSourceGen;
 
 namespace GenShaderBinding.GameApp.Examples;
 
@@ -21,7 +22,7 @@ sealed partial class HelloTriangle : IGame
 
     public string? OverlayText => "Hello, Triangle";
 
-    [Generated("Shaders/Basic/ColorPassthrough_vert.glsl")]
+    [SetupVertexAttrib("Shaders/Basic/ColorPassthrough_vert.glsl")]
     partial void SetBufferData(JSObject shaderProgram,
                                JSObject vertexBuffer,
                                Span<ColorVertex2> vertices,

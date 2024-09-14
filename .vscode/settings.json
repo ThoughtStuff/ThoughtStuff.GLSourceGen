@@ -6,8 +6,10 @@
         "colour",
         "glsl",
         "lowres",
+        "mediump",
         "nameof",
         "struct",
-        "texcoord"
+        "texcoord",
+        "TSGL"
     ]
 }

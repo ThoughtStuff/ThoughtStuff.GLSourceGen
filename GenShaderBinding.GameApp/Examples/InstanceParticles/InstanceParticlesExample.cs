@@ -1,6 +1,6 @@
-using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.JavaScript;
 using GenShaderBinding.GameApp.GameFramework;
+using ThoughtStuff.GLSourceGen;
 
 namespace GenShaderBinding.GameApp.Examples.InstanceParticles;
 
@@ -73,12 +73,12 @@ sealed partial class InstanceParticlesExample : IGame
         GL.Uniform1f(uPaddingBottomLoc, paddingBottom);
     }
 
-    [Generated("Shaders/Transformed2D/SpriteSheet_vert.glsl")]
+    [SetupVertexAttrib("Shaders/Transformed2D/SpriteSheet_vert.glsl")]
     partial void BindVertexBufferData(JSObject shaderProgram,
                                       JSObject vertexBuffer,
                                       Span<TextureVertex2> vertices,
                                       List<int> vertexAttributeLocations);
-    [Generated("Shaders/Transformed2D/SpriteSheet_vert.glsl")]
+    [SetupVertexAttrib("Shaders/Transformed2D/SpriteSheet_vert.glsl")]
     partial void BindVertexBufferData(JSObject shaderProgram,
                                       JSObject vertexBuffer,
                                       Span<InstanceData> vertices,

@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices.JavaScript;
 using GenShaderBinding.GameApp.GameFramework;
+using ThoughtStuff.GLSourceGen;
 
 namespace GenShaderBinding.GameApp.Examples;
 
@@ -12,7 +13,7 @@ sealed partial class HelloQuad : IGame
 
     public string? OverlayText => "Hello, Quad";
 
-    [Generated("Shaders/Basic/ColorPassthrough_vert.glsl")]
+    [SetupVertexAttrib("Shaders/Basic/ColorPassthrough_vert.glsl")]
     partial void BindVertexBufferData(JSObject shaderProgram,
                                       JSObject vertexBuffer,
                                       Span<ColorVertex2> vertices,

@@ -14,7 +14,9 @@ namespace ThoughtStuff.GLSourceGen;
 [Generator]
 public class GlArrayBufferBindingGenerator : IIncrementalGenerator
 {
-    const string GeneratedAttributeName = "GenShaderBinding.GeneratedAttribute";
+    const string Namespace = "ThoughtStuff.GLSourceGen";
+    const string GeneratedAttributeName = "SetupVertexAttribAttribute";
+    const string GeneratedAttributeFullName = $"{Namespace}.{GeneratedAttributeName}";
     const string ShaderExtension = ".glsl";
 
     private record Model(string ShaderPath,
@@ -45,7 +47,7 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
 
         // Pipeline for methods with the GeneratedAttribute
         var attributePipeline = context.SyntaxProvider.ForAttributeWithMetadataName(
-            fullyQualifiedMetadataName: GeneratedAttributeName,
+            fullyQualifiedMetadataName: GeneratedAttributeFullName,
             predicate: static (syntaxNode, _) => syntaxNode is BaseMethodDeclarationSyntax,
             transform: CreateModel
         );
@@ -217,7 +219,7 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
                 """);
         }
 
-        var closing = $$"""
+        var closing = """
                 }
             }
 
@@ -230,10 +232,10 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
     private static void ExceptionToError(SourceProductionContext context, Location location, Exception ex)
     {
         DiagnosticDescriptor descriptor = new(
-            id: "GL1000",
+            id: "TSGL001",
             title: "Shader Binding Generation Error",
             messageFormat: ex.Message,
-            category: "GenShaderBinding",
+            category: "ThoughtSTuff.GLSourceGen",
             DiagnosticSeverity.Error,
             isEnabledByDefault: true);
         var diagnostic = Diagnostic.Create(descriptor, location);
@@ -243,16 +245,16 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
     private static void DeclareGenerationAttribute(IncrementalGeneratorInitializationContext context)
     {
         context.RegisterPostInitializationOutput(static postInitializationContext =>
-            postInitializationContext.AddSource("GeneratedAttribute.g.cs", SourceText.From("""
+            postInitializationContext.AddSource($"{GeneratedAttributeName}.g.cs", SourceText.From($$"""
                 using System;
-                namespace GenShaderBinding
+                namespace {{Namespace}}
                 {
                     [AttributeUsage(AttributeTargets.Method)]
-                    internal sealed class GeneratedAttribute : Attribute
+                    internal sealed class {{GeneratedAttributeName}} : Attribute
                     {
                         public string ShaderPath { get; }
 
-                        public GeneratedAttribute(string shaderPath)
+                        public {{GeneratedAttributeName}}(string shaderPath)
                         {
                             ShaderPath = shaderPath;
                         }

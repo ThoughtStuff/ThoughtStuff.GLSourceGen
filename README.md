@@ -12,7 +12,7 @@ These calls map vertex data structures to shader variables, and facilitate copyi
 
 ## Example
 
-Given a typical vertex structure for 2D colored vertices:
+Given a typical vertex structure for 2D colored vertices with `Position` and `Color`:
 
 ```csharp
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -23,11 +23,25 @@ struct ColorVertex2(Vector2 position, Vector4 color)
 }
 ```
 
+And shader with `a_VertexPosition` and `a_VertexColor` input attribute variables:
+
+```glsl
+attribute vec4 a_VertexPosition;
+attribute vec4 a_VertexColor;
+
+varying mediump vec4 v_Color;
+
+void main(void) {
+    gl_Position = a_VertexPosition;
+    v_Color = a_VertexColor;
+}
+```
+
 ```csharp
 partial class HelloTriangle
 {
     // Declare the partial function which will be implemented by the source generator.
-    [GenShaderBinding.Generated]
+    [ThoughtStuff.GLSourceGen.SetupVertexAttrib("Shaders/Basic_vert.glsl")]
     partial void SetBufferData(JSObject shaderProgram,
                                JSObject vertexBuffer,
                                Span<ColorVertex2> vertices,
@@ -35,14 +49,14 @@ partial class HelloTriangle
 
     public void InitializeScene(IShaderLoader shaderLoader)
     {
-        var shaderProgram = shaderLoader.LoadShaderProgram(...);
+        var shaderProgram = shaderLoader.LoadShaderProgram("Shaders/Basic_vert.glsl", ...);
 
         // Define the vertices for the triangle. Assume NDC coordinates [-1 ... 1].
         Span<ColorVertex2> vertices =
         [
-            new(new(0, 1), new(1, 0, 0, 1)),    // Red vertex
-            new(new(-1, -1), new(0, 1, 0, 1)),  // Green vertex
-            new(new(1, -1), new(0, 0, 1, 1))    // Blue vertex
+            new ColorVertex2(new(0, 1), new(1, 0, 0, 1)),    // Red vertex
+            new ColorVertex2(new(-1, -1), new(0, 1, 0, 1)),  // Green vertex
+            new ColorVertex2(new(1, -1), new(0, 0, 1, 1))    // Blue vertex
         ];
 
         // Create a buffer for the triangle's vertex positions.

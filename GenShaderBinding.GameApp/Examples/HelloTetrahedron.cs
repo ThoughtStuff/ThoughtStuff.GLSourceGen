@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.JavaScript;
 using GenShaderBinding.GameApp.GameFramework;
+using ThoughtStuff.GLSourceGen;
 
 namespace GenShaderBinding.GameApp.Examples;
 
@@ -30,7 +31,7 @@ sealed partial class HelloTetrahedron : IGame
         return Task.CompletedTask;
     }
 
-    [Generated("Shaders/Perspective3D/ColorPassthrough_vert.glsl")]
+    [SetupVertexAttrib("Shaders/Perspective3D/ColorPassthrough_vert.glsl")]
     partial void BindVertexBufferData(JSObject shaderProgram,
                                       JSObject vertexBuffer,
                                       Span<ColorVertex3> vertices,
