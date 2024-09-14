@@ -14,6 +14,9 @@ namespace GenShaderBinding.SourceGeneration;
 [Generator]
 public class GlArrayBufferBindingGenerator : IIncrementalGenerator
 {
+    const string GeneratedAttributeName = "GenShaderBinding.GeneratedAttribute";
+    const string ShaderExtension = ".glsl";
+
     private record VertexField(string Name, string Type);
     private record Model(string ShaderPath, string Namespace, string ClassName, string MethodName, string VertexType, List<VertexField> VertexFields);
 
@@ -21,38 +24,50 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
+        // Register post-initialization output for the GeneratedAttribute
         DeclareGenerationAttribute(context);
 
-        var shaderFiles =
-            context.AdditionalTextsProvider.Where(
-                file => file.Path.EndsWith("_vert.glsl", StringComparison.OrdinalIgnoreCase));
-        // file.Path.Contains("Basic") &&
-        // file.Path.EndsWith("ColorPassthrough_vert.glsl", StringComparison.OrdinalIgnoreCase));
-        var shaderSourcePipeline = shaderFiles.Select((text, cancellationToken) =>
-        (path: text.Path, content: text.GetText(cancellationToken)?.ToString()))
-        .Select((tuple, cancellationToken) =>
-        {
-            var (path, content) = tuple;
-            // TODO: Convert path to relative to the project root
-            path = path.Replace("\\", "/");
-            var glslVariables = ShaderParsing.ExtractAttributesFromSource(content);
-            return new KeyValuePair<string, string>(path, content);
-        })
-        .Collect();
+        // Pipeline for shader files
+        var shaderFiles = context.AdditionalTextsProvider.Where(IsShaderFile);
+        var shaderSourcePipeline = shaderFiles
+            .Select((text, cancellationToken) =>
+                (path: text.Path, content: text.GetText(cancellationToken)?.ToString()))
+            .Select((tuple, cancellationToken) =>
+            {
+                var (path, shaderSource) = tuple;
+                path = ToProjectRelativePath(path);
+                return new KeyValuePair<string, string>(path, shaderSource);
+            })
+            .Collect();
 
+        // Pipeline for methods with the GeneratedAttribute
         var attributePipeline = context.SyntaxProvider.ForAttributeWithMetadataName(
-            fullyQualifiedMetadataName: "GenShaderBinding.GeneratedAttribute",
-            predicate: static (syntaxNode, cancellationToken) => syntaxNode is BaseMethodDeclarationSyntax,
+            fullyQualifiedMetadataName: GeneratedAttributeName,
+            predicate: static (syntaxNode, _) => syntaxNode is BaseMethodDeclarationSyntax,
             transform: CreateModel
         );
 
-        context.RegisterSourceOutput(
-            attributePipeline.Combine(shaderSourcePipeline),
-            GenerateSource);
+        // Combine the pipelines and register the source output generator function
+        var pipelines = attributePipeline.Combine(shaderSourcePipeline);
+        context.RegisterSourceOutput(pipelines, GenerateSource);
+    }
+
+    private static bool IsShaderFile(AdditionalText file)
+    {
+        return Path.GetExtension(file.Path)
+                   .Equals(ShaderExtension, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string ToProjectRelativePath(string path)
+    {
+        // TODO: Convert path to relative to the project root
+        path = path.Replace("\\", "/");
+        return path;
     }
 
     static Model CreateModel(GeneratorAttributeSyntaxContext context, CancellationToken cancellationToken)
     {
+        // Get the shader path from the attribute
         var shaderPath = context.Attributes[0].ConstructorArguments
             // .FirstOrDefault(pair => pair.Key == "ShaderPath")
             .First()
