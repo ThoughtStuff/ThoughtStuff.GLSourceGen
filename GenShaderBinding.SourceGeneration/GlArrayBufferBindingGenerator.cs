@@ -18,9 +18,13 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
     const string ShaderExtension = ".glsl";
 
     private record VertexField(string Name, string Type);
-    private record Model(string ShaderPath, string Namespace, string ClassName, string MethodName, string VertexType, List<VertexField> VertexFields);
-
-    // TODO: convert exceptions to build errors
+    private record Model(string ShaderPath,
+                         string Namespace,
+                         string ClassName,
+                         string MethodName,
+                         string VertexType,
+                         List<VertexField> VertexFields,
+                         Location Location);
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -102,7 +106,8 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
             ClassName: containingClass.Name,
             MethodName: context.TargetSymbol.Name,
             VertexType: vertexType.ToDisplayString(format),
-            VertexFields: vertexFields);
+            VertexFields: vertexFields,
+            Location: context.TargetSymbol.Locations.FirstOrDefault());
     }
 
     private static void CheckParameterList(ImmutableArray<IParameterSymbol> parameters)
@@ -131,6 +136,20 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
 
     private static void GenerateSource(SourceProductionContext context,
                                        (Model model, ImmutableArray<KeyValuePair<string, string>> shaderSources) input)
+    {
+        try
+        {
+            GenerateSourceCore(context, input);
+        }
+        catch (Exception ex)
+        {
+            // Convert the exception to a diagnostic error
+            ExceptionToError(context, input.model.Location, ex);
+        }
+    }
+
+    private static void GenerateSourceCore(SourceProductionContext context,
+                                           (Model model, ImmutableArray<KeyValuePair<string, string>> shaderSources) input)
     {
         var (model, shaderSourcesArray) = input;
         var shaderSources = shaderSourcesArray.ToDictionary(pair => pair.Key, pair => pair.Value);
@@ -211,6 +230,19 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
         sourceBuilder.Append(closing);
         var sourceText = SourceText.From(sourceBuilder.ToString(), Encoding.UTF8);
         context.AddSource($"{model.ClassName}_{model.MethodName}_{model.VertexType}.g.cs", sourceText);
+    }
+
+    private static void ExceptionToError(SourceProductionContext context, Location location, Exception ex)
+    {
+        DiagnosticDescriptor descriptor = new(
+            id: "GL1000",
+            title: "Shader Binding Generation Error",
+            messageFormat: ex.Message,
+            category: "GenShaderBinding",
+            DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+        var diagnostic = Diagnostic.Create(descriptor, location);
+        context.ReportDiagnostic(diagnostic);
     }
 
     private static void DeclareGenerationAttribute(IncrementalGeneratorInitializationContext context)
