@@ -5,11 +5,9 @@ using System.Text.RegularExpressions;
 
 namespace GenShaderBinding.SourceGeneration;
 
-public record GlslAttribute(string Name, string Type);
-
 public static class ShaderParsing
 {
-    public static List<GlslAttribute> ExtractAttributesFromSource(string shaderSource)
+    public static List<VariableDeclaration> ExtractAttributesFromSource(string shaderSource)
     {
         // Remove comments from the shader source
         var withoutComments = RemoveComments(shaderSource);
@@ -21,7 +19,7 @@ public static class ShaderParsing
 
         // Return attribute names and types
         return matches.Cast<Match>()
-                      .Select(match => new GlslAttribute(
+                      .Select(match => new VariableDeclaration(
                           Name: match.Groups["name"].Value,
                           Type: match.Groups["type"].Value))
                       .ToList();

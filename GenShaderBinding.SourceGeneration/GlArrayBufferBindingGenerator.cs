@@ -17,13 +17,12 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
     const string GeneratedAttributeName = "GenShaderBinding.GeneratedAttribute";
     const string ShaderExtension = ".glsl";
 
-    private record VertexField(string Name, string Type);
     private record Model(string ShaderPath,
                          string Namespace,
                          string ClassName,
                          string MethodName,
                          string VertexType,
-                         List<VertexField> VertexFields,
+                         List<VariableDeclaration> VertexFields,
                          Location Location);
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
@@ -94,7 +93,7 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
         }
         var vertexFields = vertexType.GetMembers()
                                      .OfType<IFieldSymbol>()
-                                     .Select(f => new VertexField(f.Name, f.Type.Name))
+                                     .Select(f => new VariableDeclaration(f.Name, f.Type.Name))
                                      .ToList();
 
         var format = SymbolDisplayFormat.FullyQualifiedFormat.WithGlobalNamespaceStyle(
@@ -158,7 +157,6 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
         var shaderSource = shaderSources.First(kvp => kvp.Key.Contains(model.ShaderPath)).Value;
         var shaderAttributeVariables =
             ShaderParsing.ExtractAttributesFromSource(shaderSource);
-        var shaderVariableNames = shaderAttributeVariables.Select(a => a.Name).ToList();
 
         var preamble = $$"""
 
@@ -173,14 +171,13 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
                                                   Span<{{model.VertexType}}> vertices,
                                                   List<int> vertexAttributeLocations)
                 {
-                    Console.WriteLine(@"Shader variable names: {{string.Join(", ", shaderVariableNames)}}");
-                    Console.WriteLine("Binding vertex buffer data");
+                    // Console.WriteLine("Binding vertex buffer data");
                     // Print out Model members for debugging
                     // Console.WriteLine("- Namespace: {{model.Namespace}}");
                     // Console.WriteLine("- ClassName: {{model.ClassName}}");
                     // Console.WriteLine("- MethodName: {{model.MethodName}}");
-                    Console.WriteLine("- VertexType: {{model.VertexType}}");
-                    Console.WriteLine("- VertexFields: {{string.Join(", ", model.VertexFields.Select(f => $"{f.Name}: {f.Type}"))}}");
+                    // Console.WriteLine("- VertexType: {{model.VertexType}}");
+                    // Console.WriteLine("- VertexFields: {{string.Join(", ", model.VertexFields.Select(f => $"{f.Name}: {f.Type}"))}}");
 
                     GL.BindBuffer(GL.ARRAY_BUFFER, vertexBuffer);
                     GL.BufferData(GL.ARRAY_BUFFER, vertices, GL.STATIC_DRAW);
@@ -192,10 +189,8 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
         foreach (var field in model.VertexFields)
         {
             // Match C# field name to GLSL variable name
-            var glslVariableName = shaderVariableNames.FirstOrDefault(v => v.Contains(field.Name))
-                                   ?? throw new InvalidOperationException($"Could not find GLSL variable name for {field.Name}");
-            // TODO: verify the types are compatible
-            shaderVariableNames.Remove(glslVariableName);
+            var glslVariableName = ShaderInputMatching.GetInputVariableName(field, shaderAttributeVariables);
+            shaderAttributeVariables.Remove(shaderAttributeVariables.First(v => v.Name == glslVariableName));
             var location = $"{field.Name}Location";
             int size = field.Type switch
             {

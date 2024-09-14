@@ -15,7 +15,7 @@ public class ShaderParsingTest
         var result = ExtractAttributesFromSource(shaderSource);
 
         // Assert
-        result.Should().BeEquivalentTo(new List<GlslAttribute>
+        result.Should().BeEquivalentTo(new List<VariableDeclaration>
         {
             new("a_Position", "vec3")
         });
@@ -36,7 +36,7 @@ public class ShaderParsingTest
         var result = ExtractAttributesFromSource(shaderSource);
 
         // Assert
-        result.Should().BeEquivalentTo(new List<GlslAttribute>
+        result.Should().BeEquivalentTo(new List<VariableDeclaration>
         {
             new("a_Position", "vec3")
         });
@@ -71,7 +71,7 @@ public class ShaderParsingTest
         var result = ExtractAttributesFromSource(shaderSource);
 
         // Assert
-        result.Should().BeEquivalentTo(new List<GlslAttribute>
+        result.Should().BeEquivalentTo(new List<VariableDeclaration>
         {
             new("a_VertexPosition", "vec4"),
             new("a_VertexColor", "vec4"),
@@ -111,7 +111,7 @@ public class ShaderParsingTest
         var result = ExtractAttributesFromSource(shaderSource);
 
         // Assert
-        result.Should().BeEquivalentTo(new List<GlslAttribute>
+        result.Should().BeEquivalentTo(new List<VariableDeclaration>
         {
             new("p", "vec4"),
             new("q", "vec4"),
