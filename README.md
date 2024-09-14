@@ -1,6 +1,7 @@
 # ThoughtStuff.GLSourceGen
 
-Generates calls to
+`ThoughtStuff.GLSourceGen` is a source generator that automates OpenGL/WebGL calls for mapping vertex data structures to shaders.
+Specifically, it generates calls to:
 
 - `GL.BindBuffer`
 - `GL.BufferData`
@@ -8,7 +9,25 @@ Generates calls to
 - `GL.EnableVertexAttribArray`
 - `GL.VertexAttribPointer`
 
-These calls map vertex data structures to shader variables, and facilitate copying data from CPU memory to GPU memory.
+### Benefits of Source Generation
+
+- **Compile-Time Generation**: Code is generated during compilation, eliminating without using reflection.
+- **Performance**: No reflection means faster execution and lower memory usage.
+- **AOT Compatibility**: Fully supports Ahead-of-Time (AOT) compilation for platforms like WebAssembly.
+
+## Get Started
+
+- Add Package Reference
+    ```sh
+    dotnet add package ThoughtStuff.GLSourceGen
+    ```
+- Add shaders as `AdditionalFiles` in csproj
+    ```xml
+    <ItemGroup>
+        <!-- Include shader files as Additional Files so they can be used by source generation -->
+        <AdditionalFiles Include="Shaders\**\*.glsl" />
+    </ItemGroup>
+    ```
 
 ## Example
 
@@ -83,6 +102,8 @@ partial class HelloTriangle
 
         // Get the location of the 'a_Position' attribute variable in the shader program.
         int positionLocation = GL.GetAttribLocation(shaderProgram, "a_Position");
+        // Keep track of the attribute locations so they can be disabled or modified (e.g. for instancing)
+        vertexAttributeLocations.Add(positionLocation);
         // Enable the 'a_Position' attribute.
         GL.EnableVertexAttribArray(positionLocation);
         // Define the layout of the 'a_Position' attribute.
@@ -95,6 +116,8 @@ partial class HelloTriangle
 
         // Get the location of the 'a_Color' attribute in the shader program.
         int colorLocation = GL.GetAttribLocation(shaderProgram, "a_Color");
+        // Keep track of the attribute locations so they can be disabled or modified (e.g. for instancing)
+        vertexAttributeLocations.Add(colorLocation);
         // Enable the 'a_Color' attribute.
         GL.EnableVertexAttribArray(colorLocation);
         // Define the layout of the 'a_Color' attribute.
