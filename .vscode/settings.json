@@ -10,6 +10,7 @@
         "nameof",
         "struct",
         "texcoord",
-        "TSGL"
+        "TSGL",
+        "webgl"
     ]
 }
