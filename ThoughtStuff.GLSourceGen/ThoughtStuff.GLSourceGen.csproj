@@ -9,6 +9,8 @@
     <PackageId>ThoughtStuff.GLSourceGen</PackageId>
     <Authors>Jacob Foshee</Authors>
     <Description>Generates GL calls to map vertex data to VBO and shader attributes.</Description>
+    <PackageTags>WebGL, OpenGL, GL, Graphics, Shader, Vertex, Buffer, Attribute, VBO, sourcegen, codegen, source generation, code generation</PackageTags>
+    <PackageProjectUrl>https://github.com/ThoughtStuff/ThoughtStuff.GLSourceGen</PackageProjectUrl>
     <Version>1.0.0</Version>
     <NoWarn>$(NoWarn);NU5128</NoWarn>
     <NoDefaultExcludes>true</NoDefaultExcludes>
