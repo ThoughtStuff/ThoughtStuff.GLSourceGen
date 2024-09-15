@@ -77,7 +77,7 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
             // .FirstOrDefault(pair => pair.Key == "ShaderPath")
             .First()
             .Value as string
-            ?? throw new InvalidOperationException("ShaderPath argument is required");
+            ?? throw new UsageException("ShaderPath argument is required");
         var containingClass = context.TargetSymbol.ContainingType;
         var methodSymbol = (IMethodSymbol)context.TargetSymbol;
         // Verify parameters are as expected
@@ -86,12 +86,12 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
         var vertexParameter = parameters[2].Type;
         if (vertexParameter is not INamedTypeSymbol spanType || spanType.TypeArguments.Length != 1)
         {
-            throw new InvalidOperationException("Expected 3rd parameter to be a Span<CustomVertexType>");
+            throw new UsageException("Expected 3rd parameter to be a Span<CustomVertexType>");
         }
         var vertexType = spanType.TypeArguments[0];
         if (vertexType.TypeKind != TypeKind.Struct)
         {
-            throw new InvalidOperationException("Vertex Type must be a struct type");
+            throw new UsageException("Vertex Type must be a struct type");
         }
         var vertexFields = vertexType.GetMembers()
                                      .OfType<IFieldSymbol>()
@@ -116,7 +116,7 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
         const string expectedParameterList = "(JSObject shaderProgram, JSObject vertexBuffer, Span<CustomVertexType> vertices, List<int> vertexAttributeLocations)";
         if (parameters.Length != 4)
         {
-            throw new InvalidOperationException($"Expected 4 parameters: {expectedParameterList}");
+            throw new UsageException($"Expected 4 parameters: {expectedParameterList}");
         }
         var isMatching = parameters[0].Type.Name == "JSObject" &&
                          parameters[1].Type.Name == "JSObject" &&
@@ -124,28 +124,32 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
                          parameters[3].Type.Name == "List";
         if (!isMatching)
         {
-            throw new InvalidOperationException($"Expected parameter types to match: {expectedParameterList}");
+            throw new UsageException($"Expected parameter types to match: {expectedParameterList}");
         }
         var locationsParameter = parameters[3].Type;
         if (locationsParameter is not INamedTypeSymbol listType
             || listType.TypeArguments.Length != 1
             || listType.TypeArguments[0].Name != "Int32")
         {
-            throw new InvalidOperationException("Expected 4th parameter to be a List<int>");
+            throw new UsageException("Expected 4th parameter to be a List<int>");
         }
     }
 
     private static void GenerateSource(SourceProductionContext context,
                                        (Model model, ImmutableArray<KeyValuePair<string, string>> shaderSources) input)
     {
+        // Convert the exceptions to a diagnostic error
         try
         {
             GenerateSourceCore(context, input);
         }
-        catch (Exception ex)
+        catch (UsageException usageException)
         {
-            // Convert the exception to a diagnostic error
-            ExceptionToError(context, input.model.Location, ex);
+            ExceptionToError(context, input.model.Location, usageException);
+        }
+        catch (Exception internalException)
+        {
+            ExceptionToError(context, input.model.Location, internalException);
         }
     }
 
@@ -200,13 +204,13 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
                 "Vector2" => 2,
                 "Vector3" => 3,
                 "Vector4" => 4,
-                _ => throw new NotSupportedException($"Unsupported field type in {vertexType}: {field.Type}")
+                _ => throw new UsageException($"Unsupported field type in {vertexType}: {field.Type}")
             };
             sourceBuilder.AppendLine($$"""
 
                     var {{location}} = GL.GetAttribLocation(shaderProgram, "{{glslVariableName}}");
                     if ({{location}} == -1)
-                        throw new InvalidOperationException($"Could not find attribute location for {{glslVariableName}}.");
+                        throw new InvalidOperationException($"Could not find shader attribute location for {{glslVariableName}}.");
                     GL.EnableVertexAttribArray({{location}});
                     vertexAttributeLocations.Add({{location}});
                     GL.VertexAttribPointer({{location}},
@@ -229,16 +233,29 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
         context.AddSource($"{model.ClassName}_{model.MethodName}_{model.VertexType}.g.cs", sourceText);
     }
 
-    private static void ExceptionToError(SourceProductionContext context, Location location, Exception ex)
+    private static void ExceptionToError(SourceProductionContext context, Location location, UsageException ex)
     {
         DiagnosticDescriptor descriptor = new(
             id: "TSGL001",
-            title: "Shader Binding Generation Error",
+            title: "GL Source Generation Error",
             messageFormat: ex.Message,
-            category: "ThoughtSTuff.GLSourceGen",
+            category: "ThoughtStuff.GLSourceGen",
             DiagnosticSeverity.Error,
             isEnabledByDefault: true);
         var diagnostic = Diagnostic.Create(descriptor, location);
+        context.ReportDiagnostic(diagnostic);
+    }
+
+    private static void ExceptionToError(SourceProductionContext context, Location location, Exception ex)
+    {
+        DiagnosticDescriptor descriptor = new(
+            id: "TSGL999",
+            title: "Internal GL Source Generation Error",
+            messageFormat: "An internal error in GL source generation occurred: {0}",
+            category: "Internal",
+            DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+        var diagnostic = Diagnostic.Create(descriptor, location, ex.Message);
         context.ReportDiagnostic(diagnostic);
     }
 
