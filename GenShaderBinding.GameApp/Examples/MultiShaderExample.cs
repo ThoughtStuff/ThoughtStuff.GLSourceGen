@@ -5,14 +5,28 @@ using ThoughtStuff.GLSourceGen;
 
 namespace GenShaderBinding.GameApp.Examples;
 
+using static Angle;
+
 // Demonstrates using multiple shaders with different vertex formats in the same scene.
-public sealed partial class MultiShaderExample: IGame
+public sealed partial class MultiShaderExample : IGame
 {
+    // GL Resources for the textured quad
     private JSObject? _shaderProgramTextured;
     private JSObject? _lowResTextureId;
     private JSObject? _highResTextureId;
     private JSObject? _vertexBufferTextured;
-    private readonly List<int> _vertexAttributeLocations = [];
+    private readonly List<int> _vertexAttributeLocationsTextured = [];
+
+    // GL Resources for the tetrahedron
+    private JSObject? _shaderProgramPerspective;
+    private JSObject? _modelViewLocation;
+    private JSObject? _projectionLocation;
+    private JSObject? _vertexBufferTetrahedron;
+    private readonly List<int> _vertexAttributeLocationsPerspective = [];
+
+    // "Game" state
+    private float _rotationAngleX = 0f;
+    private float _rotationAngleY = 0f;
 
 
     public string? OverlayText => "Multi-Shader Example";
@@ -23,11 +37,17 @@ public sealed partial class MultiShaderExample: IGame
                                       Span<TextureVertex2> vertices,
                                       List<int> vertexAttributeLocations);
 
+    [SetupVertexAttrib("Shaders/Perspective3D/ColorPassthrough_vert.glsl")]
+    partial void BindVertexBufferData(JSObject shaderProgram,
+                                      JSObject vertexBuffer,
+                                      Span<ColorVertex3> vertices,
+                                      List<int> vertexAttributeLocations);
+
     public async Task LoadAssetsEssentialAsync(IShaderLoader shaderLoader, ITextureLoader textureLoader)
     {
         // Load the shader program
         _shaderProgramTextured = shaderLoader.LoadShaderProgram("Basic/TextureUnlit_vert",
-                                                        "Basic/TextureUnlit_frag");
+                                                                "Basic/TextureUnlit_frag");
 
         // Load the low-res texture
         string texturePath = "/textures/webgl-logo-lowres.png";
@@ -49,8 +69,8 @@ public sealed partial class MultiShaderExample: IGame
         if (_shaderProgramTextured is null)
             throw new InvalidOperationException("Shader program not loaded.");
 
-        // Define the vertices for the quad. Assume NDC coordinates [-1 ... 1].
-        Span<TextureVertex2> vertices =
+        // Define the vertices for the texture-mapped quad. Assume NDC coordinates [-1 ... 1].
+        Span<TextureVertex2> quadVertices =
         [
             new(new(-1, 1), new(0, 0)),
             new(new(-1, -1), new(0, 1)),
@@ -59,11 +79,49 @@ public sealed partial class MultiShaderExample: IGame
         ];
         // Create a buffer for the quad's vertices
         _vertexBufferTextured = GL.CreateBuffer();
-        BindVertexBufferData(_shaderProgramTextured, _vertexBufferTextured, vertices, _vertexAttributeLocations);
+        BindVertexBufferData(_shaderProgramTextured, _vertexBufferTextured, quadVertices, _vertexAttributeLocationsTextured);
 
         // Enable alpha blending for the textures which have an alpha channel
         GL.Enable(GL.BLEND);
         GL.BlendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
+
+        // -----------------------------------------------------------
+
+        // Load shader program from files using IShaderLoader
+        _shaderProgramPerspective = shaderLoader.LoadShaderProgram("Perspective3D/ColorPassthrough_vert",
+                                                        "Basic/ColorPassthrough_frag");
+
+        // Store location of the model-view and projection matrix uniforms
+        _modelViewLocation = GL.GetUniformLocation(_shaderProgramPerspective, "u_ModelViewMatrix");
+        _projectionLocation = GL.GetUniformLocation(_shaderProgramPerspective, "u_ProjectionMatrix");
+
+        // Define vertices for the tetrahedron
+        Span<ColorVertex3> tetrahedronVertices =
+        [
+            // Red face
+            new (new(0.5f, 0.5f, 0.5f), new(1f, 0f, 0f)),
+            new (new(-0.5f, -0.5f, 0.5f), new(1f, 0f, 0f)),
+            new (new(-0.5f, 0.5f, -0.5f), new(1f, 0f, 0f)),
+            // Green face
+            new (new(0.5f, -0.5f, -0.5f), new(0f, 1f, 0f)),
+            new (new(-0.5f, -0.5f, 0.5f), new(0f, 1f, 0f)),
+            new (new(-0.5f, 0.5f, -0.5f), new(0f, 1f, 0f)),
+            // Blue face
+            new (new(0.5f, 0.5f, 0.5f), new(0f, 0f, 1f)),
+            new (new(-0.5f, -0.5f, 0.5f), new(0f, 0f, 1f)),
+            new (new(0.5f, -0.5f, -0.5f), new(0f, 0f, 1f)),
+            // Yellow face
+            new (new(0.5f, 0.5f, 0.5f), new(1f, 1f, 0f)),
+            new (new(0.5f, -0.5f, -0.5f), new(1f, 1f, 0f)),
+            new (new(-0.5f, 0.5f, -0.5f), new(1f, 1f, 0f))
+        ];
+
+        // Create and bind the vertex buffer
+        _vertexBufferTetrahedron = GL.CreateBuffer();
+        BindVertexBufferData(_shaderProgramPerspective, _vertexBufferTetrahedron, tetrahedronVertices, _vertexAttributeLocationsPerspective);
+
+        // Enable depth testing
+        GL.Enable(GL.DEPTH_TEST);
 
         // Set the clear color to cornflower blue
         GL.ClearColor(0.392f, 0.584f, 0.929f, 1.0f);
@@ -91,11 +149,44 @@ public sealed partial class MultiShaderExample: IGame
 
     public void Render()
     {
-        GL.Clear(GL.COLOR_BUFFER_BIT);
+        GL.Clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
+
+        // TODO: Setup vertex layout for textured quad
+        GL.UseProgram(_shaderProgramTextured);
+
         if (_vertexBufferTextured is not null)
         {
             GL.DrawArrays(GL.TRIANGLE_STRIP, 0, 4);
         }
+
+        ////////////////////
+
+        if (_shaderProgramPerspective is null || _modelViewLocation is null || _projectionLocation is null)
+            return;
+
+        // TODO: Setup vertex layout for tetrahedron
+
+        GL.UseProgram(_shaderProgramPerspective);
+
+        // Create Model-View matrix (rotation)
+        var modelViewMatrix = Matrix4x4.CreateRotationY(ToRadians(_rotationAngleY)) *
+                              Matrix4x4.CreateRotationX(ToRadians(_rotationAngleX)) *
+                              Matrix4x4.CreateTranslation(1, 0, -2);
+
+        // Create Projection matrix (perspective projection)
+        var projectionMatrix = Matrix4x4.CreatePerspectiveFieldOfView(
+            fieldOfView: ToRadians(60),
+            aspectRatio: 1.0f,           // TODO: Fix aspect ratio
+            nearPlaneDistance: 0.1f,
+            farPlaneDistance: 10
+        );
+
+        // Send model-view and projection matrices to the shader
+        GL.UniformMatrix(_modelViewLocation, false, ref modelViewMatrix);
+        GL.UniformMatrix(_projectionLocation, false, ref projectionMatrix);
+
+        // Draw the tetrahedron
+        GL.DrawArrays(GL.TRIANGLES, 0, 12); // Assuming 12 vertices for 4 triangles (tetrahedron)
     }
 
     public void Dispose()
@@ -104,11 +195,11 @@ public sealed partial class MultiShaderExample: IGame
         GL.Disable(GL.BLEND);
 
         // Disable all vertex attribute locations
-        foreach (var attributeLocation in _vertexAttributeLocations)
+        foreach (var attributeLocation in _vertexAttributeLocationsTextured)
         {
             GL.DisableVertexAttribArray(attributeLocation);
         }
-        _vertexAttributeLocations.Clear();
+        _vertexAttributeLocationsTextured.Clear();
 
         // Delete the position buffer
         if (_vertexBufferTextured is not null)
@@ -138,9 +229,44 @@ public sealed partial class MultiShaderExample: IGame
         if (_shaderProgramTextured is not null)
             ShaderLoader.DisposeShaderProgram(_shaderProgramTextured);
         _shaderProgramTextured = null;
+
+
+        //////////////
+
+        // Restore default settings
+        GL.Disable(GL.DEPTH_TEST);
+
+        // Disable all vertex attribute locations
+        foreach (var attributeLocation in _vertexAttributeLocationsPerspective)
+        {
+            GL.DisableVertexAttribArray(attributeLocation);
+        }
+        _vertexAttributeLocationsPerspective.Clear();
+
+        // Dispose of the vertex buffer
+        if (_vertexBufferTetrahedron is not null)
+        {
+            GL.DeleteBuffer(_vertexBufferTetrahedron);
+            _vertexBufferTetrahedron.Dispose();
+            _vertexBufferTetrahedron = null;
+        }
+
+        // Dispose of the shader program
+        if (_shaderProgramPerspective is not null)
+            ShaderLoader.DisposeShaderProgram(_shaderProgramPerspective);
+        _shaderProgramPerspective = null;
+
     }
 
-    public void Update(TimeSpan deltaTime) { }
+    public void Update(TimeSpan deltaTime)
+    {
+        // Rotate the tetrahedron
+        _rotationAngleX += (float)deltaTime.TotalSeconds * 30;
+        _rotationAngleX %= 360f;
+        _rotationAngleY += (float)deltaTime.TotalSeconds * 120;
+        _rotationAngleY %= 360f;
+    }
+
     public void FixedUpdate(TimeSpan deltaTime) { }
     public void OnKeyPress(string key, bool pressed) { }
     public void OnMouseClick(int button, bool pressed, Vector2 position) { }

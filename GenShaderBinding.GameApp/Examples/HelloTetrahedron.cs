@@ -5,6 +5,8 @@ using ThoughtStuff.GLSourceGen;
 
 namespace GenShaderBinding.GameApp.Examples;
 
+using static Angle;
+
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
 struct ColorVertex3(Vector3 position, Vector3 color)
 {
@@ -152,11 +154,6 @@ sealed partial class HelloTetrahedron : IGame
 
         // Draw the tetrahedron
         GL.DrawArrays(GL.TRIANGLES, 0, 12); // Assuming 12 vertices for 4 triangles (tetrahedron)
-    }
-
-    private static float ToRadians(float rotationAngle)
-    {
-        return rotationAngle * MathF.PI / 180f;
     }
 
     public void OnKeyPress(string key, bool pressed) { }
