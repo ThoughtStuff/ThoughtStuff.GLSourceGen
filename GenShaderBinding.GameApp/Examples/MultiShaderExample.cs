@@ -37,11 +37,69 @@ public sealed partial class MultiShaderExample : IGame
                                       Span<TextureVertex2> vertices,
                                       List<int> vertexAttributeLocations);
 
+    private void SetupVertexLayoutTextured()
+    {
+        var shaderProgram = _shaderProgramTextured!;
+        var PositionLocation = GL.GetAttribLocation(shaderProgram, "a_VertexPosition");
+        if (PositionLocation == -1)
+            throw new InvalidOperationException($"Could not find shader attribute location for a_VertexPosition.");
+        GL.EnableVertexAttribArray(PositionLocation);
+        // vertexAttributeLocations.Add(PositionLocation);
+        GL.VertexAttribPointer(PositionLocation,
+                               size: 2,
+                               type: GL.FLOAT,
+                               normalized: false,
+                               stride: Marshal.SizeOf<GenShaderBinding.GameApp.Examples.TextureVertex2>(),
+                               offset: Marshal.OffsetOf<GenShaderBinding.GameApp.Examples.TextureVertex2>(nameof(GenShaderBinding.GameApp.Examples.TextureVertex2.Position)).ToInt32());
+
+
+        var TextureCoordLocation = GL.GetAttribLocation(shaderProgram, "a_TextureCoord");
+        if (TextureCoordLocation == -1)
+            throw new InvalidOperationException($"Could not find shader attribute location for a_TextureCoord.");
+        GL.EnableVertexAttribArray(TextureCoordLocation);
+        // vertexAttributeLocations.Add(TextureCoordLocation);
+        GL.VertexAttribPointer(TextureCoordLocation,
+                               size: 2,
+                               type: GL.FLOAT,
+                               normalized: false,
+                               stride: Marshal.SizeOf<GenShaderBinding.GameApp.Examples.TextureVertex2>(),
+                               offset: Marshal.OffsetOf<GenShaderBinding.GameApp.Examples.TextureVertex2>(nameof(GenShaderBinding.GameApp.Examples.TextureVertex2.TextureCoord)).ToInt32());
+    }
+
     [SetupVertexAttrib("Shaders/Perspective3D/ColorPassthrough_vert.glsl")]
     partial void BindVertexBufferData(JSObject shaderProgram,
                                       JSObject vertexBuffer,
                                       Span<ColorVertex3> vertices,
                                       List<int> vertexAttributeLocations);
+
+    private void SetupVertexLayoutPerspective()
+    {
+        var shaderProgram = _shaderProgramPerspective!;
+        var PositionLocation = GL.GetAttribLocation(shaderProgram, "a_VertexPosition");
+        if (PositionLocation == -1)
+            throw new InvalidOperationException($"Could not find shader attribute location for a_VertexPosition.");
+        GL.EnableVertexAttribArray(PositionLocation);
+        // vertexAttributeLocations.Add(PositionLocation);
+        GL.VertexAttribPointer(PositionLocation,
+                               size: 3,
+                               type: GL.FLOAT,
+                               normalized: false,
+                               stride: Marshal.SizeOf<GenShaderBinding.GameApp.Examples.ColorVertex3>(),
+                               offset: Marshal.OffsetOf<GenShaderBinding.GameApp.Examples.ColorVertex3>(nameof(GenShaderBinding.GameApp.Examples.ColorVertex3.Position)).ToInt32());
+
+
+        var ColorLocation = GL.GetAttribLocation(shaderProgram, "a_VertexColor");
+        if (ColorLocation == -1)
+            throw new InvalidOperationException($"Could not find shader attribute location for a_VertexColor.");
+        GL.EnableVertexAttribArray(ColorLocation);
+        // vertexAttributeLocations.Add(ColorLocation);
+        GL.VertexAttribPointer(ColorLocation,
+                               size: 3,
+                               type: GL.FLOAT,
+                               normalized: false,
+                               stride: Marshal.SizeOf<GenShaderBinding.GameApp.Examples.ColorVertex3>(),
+                               offset: Marshal.OffsetOf<GenShaderBinding.GameApp.Examples.ColorVertex3>(nameof(GenShaderBinding.GameApp.Examples.ColorVertex3.Color)).ToInt32());
+    }
 
     public async Task LoadAssetsEssentialAsync(IShaderLoader shaderLoader, ITextureLoader textureLoader)
     {
@@ -151,42 +209,47 @@ public sealed partial class MultiShaderExample : IGame
     {
         GL.Clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
 
-        // TODO: Setup vertex layout for textured quad
-        GL.UseProgram(_shaderProgramTextured);
-
         if (_vertexBufferTextured is not null)
         {
+            // Shader
+            GL.UseProgram(_shaderProgramTextured);
+            // Vertex buffer
+            GL.BindBuffer(GL.ARRAY_BUFFER, _vertexBufferTextured);
+            // Vertex layout
+            SetupVertexLayoutTextured();
+            // Draw
             GL.DrawArrays(GL.TRIANGLE_STRIP, 0, 4);
         }
 
         ////////////////////
 
-        if (_shaderProgramPerspective is null || _modelViewLocation is null || _projectionLocation is null)
-            return;
+        if (_vertexBufferTetrahedron is not null && _modelViewLocation is not null && _projectionLocation is not null)
+        {
+            // Shader
+            GL.UseProgram(_shaderProgramPerspective);
+            // Set Vertex buffer
+            GL.BindBuffer(GL.ARRAY_BUFFER, _vertexBufferTetrahedron!);
+            // Setup vertex layout
+            SetupVertexLayoutPerspective();
 
-        // TODO: Setup vertex layout for tetrahedron
+            // Create Model-View matrix (rotation)
+            var modelViewMatrix = Matrix4x4.CreateRotationY(ToRadians(_rotationAngleY)) *
+                                  Matrix4x4.CreateRotationX(ToRadians(_rotationAngleX)) *
+                                  Matrix4x4.CreateTranslation(1, 0, -2);
+            // Create Projection matrix (perspective projection)
+            var projectionMatrix = Matrix4x4.CreatePerspectiveFieldOfView(
+                fieldOfView: ToRadians(60),
+                aspectRatio: 1.0f,           // TODO: Fix aspect ratio
+                nearPlaneDistance: 0.1f,
+                farPlaneDistance: 10
+            );
+            // Send model-view and projection matrices to the shader
+            GL.UniformMatrix(_modelViewLocation, false, ref modelViewMatrix);
+            GL.UniformMatrix(_projectionLocation, false, ref projectionMatrix);
 
-        GL.UseProgram(_shaderProgramPerspective);
-
-        // Create Model-View matrix (rotation)
-        var modelViewMatrix = Matrix4x4.CreateRotationY(ToRadians(_rotationAngleY)) *
-                              Matrix4x4.CreateRotationX(ToRadians(_rotationAngleX)) *
-                              Matrix4x4.CreateTranslation(1, 0, -2);
-
-        // Create Projection matrix (perspective projection)
-        var projectionMatrix = Matrix4x4.CreatePerspectiveFieldOfView(
-            fieldOfView: ToRadians(60),
-            aspectRatio: 1.0f,           // TODO: Fix aspect ratio
-            nearPlaneDistance: 0.1f,
-            farPlaneDistance: 10
-        );
-
-        // Send model-view and projection matrices to the shader
-        GL.UniformMatrix(_modelViewLocation, false, ref modelViewMatrix);
-        GL.UniformMatrix(_projectionLocation, false, ref projectionMatrix);
-
-        // Draw the tetrahedron
-        GL.DrawArrays(GL.TRIANGLES, 0, 12); // Assuming 12 vertices for 4 triangles (tetrahedron)
+            // Draw the tetrahedron
+            GL.DrawArrays(GL.TRIANGLES, 0, 12); // Assuming 12 vertices for 4 triangles (tetrahedron)
+        }
     }
 
     public void Dispose()
