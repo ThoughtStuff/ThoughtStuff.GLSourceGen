@@ -19,6 +19,7 @@ Console.WriteLine("GLSL Version: " + glslVersion);
 // Find more examples in the Examples folder
 // The GameChanger allows you to switch between examples using the PageUp and PageDown keys
 using var game = new GameChanger(
+    new MultiShaderExample(),
     new HelloTriangle(),
     new HelloQuad(),
     new HelloTextureMap(),

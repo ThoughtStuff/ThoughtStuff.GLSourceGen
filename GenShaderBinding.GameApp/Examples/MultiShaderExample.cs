@@ -5,28 +5,17 @@ using ThoughtStuff.GLSourceGen;
 
 namespace GenShaderBinding.GameApp.Examples;
 
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
-struct TextureVertex2(Vector2 position, Vector2 textureCoord)
+// Demonstrates using multiple shaders with different vertex formats in the same scene.
+public sealed partial class MultiShaderExample: IGame
 {
-    public Vector2 Position = position;
-    public Vector2 TextureCoord = textureCoord;
-}
-
-/// <summary>
-/// Demonstrates texture-mapping a quad.
-/// The texture map has transparent pixels which allow the background color to show through.
-/// An initial low-res texture is loaded first, then replaced with a high-res texture.
-/// </summary>
-sealed partial class HelloTextureMap : IGame
-{
-    private JSObject? _shaderProgram;
+    private JSObject? _shaderProgramTextured;
     private JSObject? _lowResTextureId;
     private JSObject? _highResTextureId;
-    private JSObject? _positionBuffer;
+    private JSObject? _vertexBufferTextured;
     private readonly List<int> _vertexAttributeLocations = [];
 
 
-    public string? OverlayText => "Hello, Texture Map";
+    public string? OverlayText => "Multi-Shader Example";
 
     [SetupVertexAttrib("Shaders/Basic/TextureUnlit_vert.glsl")]
     partial void BindVertexBufferData(JSObject shaderProgram,
@@ -37,7 +26,8 @@ sealed partial class HelloTextureMap : IGame
     public async Task LoadAssetsEssentialAsync(IShaderLoader shaderLoader, ITextureLoader textureLoader)
     {
         // Load the shader program
-        _shaderProgram = shaderLoader.LoadShaderProgram("Basic/TextureUnlit_vert", "Basic/TextureUnlit_frag");
+        _shaderProgramTextured = shaderLoader.LoadShaderProgram("Basic/TextureUnlit_vert",
+                                                        "Basic/TextureUnlit_frag");
 
         // Load the low-res texture
         string texturePath = "/textures/webgl-logo-lowres.png";
@@ -48,7 +38,7 @@ sealed partial class HelloTextureMap : IGame
                                                         nearestNeighborMagnification: false);
         GL.ActiveTexture(GL.TEXTURE0);
         GL.BindTexture(GL.TEXTURE_2D, textureId);
-        var textureUniformLoc = GL.GetUniformLocation(_shaderProgram, "u_Texture");
+        var textureUniformLoc = GL.GetUniformLocation(_shaderProgramTextured, "u_Texture");
         GL.Uniform1i(textureUniformLoc, 0);
 
         _lowResTextureId = textureId;
@@ -56,7 +46,7 @@ sealed partial class HelloTextureMap : IGame
 
     public void InitializeScene(IShaderLoader shaderLoader)
     {
-        if (_shaderProgram is null)
+        if (_shaderProgramTextured is null)
             throw new InvalidOperationException("Shader program not loaded.");
 
         // Define the vertices for the quad. Assume NDC coordinates [-1 ... 1].
@@ -64,12 +54,12 @@ sealed partial class HelloTextureMap : IGame
         [
             new(new(-1, 1), new(0, 0)),
             new(new(-1, -1), new(0, 1)),
-            new(new(1, 1), new(1, 0)),
-            new(new(1, -1), new(1, 1))
+            new(new(0, 1), new(1, 0)),
+            new(new(0, -1), new(1, 1))
         ];
         // Create a buffer for the quad's vertices
-        _positionBuffer = GL.CreateBuffer();
-        BindVertexBufferData(_shaderProgram, _positionBuffer, vertices, _vertexAttributeLocations);
+        _vertexBufferTextured = GL.CreateBuffer();
+        BindVertexBufferData(_shaderProgramTextured, _vertexBufferTextured, vertices, _vertexAttributeLocations);
 
         // Enable alpha blending for the textures which have an alpha channel
         GL.Enable(GL.BLEND);
@@ -102,7 +92,7 @@ sealed partial class HelloTextureMap : IGame
     public void Render()
     {
         GL.Clear(GL.COLOR_BUFFER_BIT);
-        if (_positionBuffer is not null)
+        if (_vertexBufferTextured is not null)
         {
             GL.DrawArrays(GL.TRIANGLE_STRIP, 0, 4);
         }
@@ -121,11 +111,11 @@ sealed partial class HelloTextureMap : IGame
         _vertexAttributeLocations.Clear();
 
         // Delete the position buffer
-        if (_positionBuffer is not null)
+        if (_vertexBufferTextured is not null)
         {
-            GL.DeleteBuffer(_positionBuffer);
-            _positionBuffer.Dispose();
-            _positionBuffer = null;
+            GL.DeleteBuffer(_vertexBufferTextured);
+            _vertexBufferTextured.Dispose();
+            _vertexBufferTextured = null;
         }
 
         // Delete the low-res texture if it hasn't been deleted already
@@ -145,9 +135,9 @@ sealed partial class HelloTextureMap : IGame
         }
 
         // Delete the shader program
-        if (_shaderProgram is not null)
-            ShaderLoader.DisposeShaderProgram(_shaderProgram);
-        _shaderProgram = null;
+        if (_shaderProgramTextured is not null)
+            ShaderLoader.DisposeShaderProgram(_shaderProgramTextured);
+        _shaderProgramTextured = null;
     }
 
     public void Update(TimeSpan deltaTime) { }
