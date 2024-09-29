@@ -40,6 +40,7 @@ public sealed partial class MultiShaderExample : IGame
     private void SetupVertexLayoutTextured()
     {
         var shaderProgram = _shaderProgramTextured!;
+        GL.BindBuffer(GL.ARRAY_BUFFER, _vertexBufferTextured!);
         var PositionLocation = GL.GetAttribLocation(shaderProgram, "a_VertexPosition");
         if (PositionLocation == -1)
             throw new InvalidOperationException($"Could not find shader attribute location for a_VertexPosition.");
@@ -75,6 +76,7 @@ public sealed partial class MultiShaderExample : IGame
     private void SetupVertexLayoutPerspective()
     {
         var shaderProgram = _shaderProgramPerspective!;
+        GL.BindBuffer(GL.ARRAY_BUFFER, _vertexBufferTetrahedron!);
         var PositionLocation = GL.GetAttribLocation(shaderProgram, "a_VertexPosition");
         if (PositionLocation == -1)
             throw new InvalidOperationException($"Could not find shader attribute location for a_VertexPosition.");
@@ -213,9 +215,7 @@ public sealed partial class MultiShaderExample : IGame
         {
             // Shader
             GL.UseProgram(_shaderProgramTextured);
-            // Vertex buffer
-            GL.BindBuffer(GL.ARRAY_BUFFER, _vertexBufferTextured);
-            // Vertex layout
+            // Use VBO + Vertex layout
             SetupVertexLayoutTextured();
             // Draw
             GL.DrawArrays(GL.TRIANGLE_STRIP, 0, 4);
@@ -227,8 +227,6 @@ public sealed partial class MultiShaderExample : IGame
         {
             // Shader
             GL.UseProgram(_shaderProgramPerspective);
-            // Set Vertex buffer
-            GL.BindBuffer(GL.ARRAY_BUFFER, _vertexBufferTetrahedron!);
             // Setup vertex layout
             SetupVertexLayoutPerspective();
 

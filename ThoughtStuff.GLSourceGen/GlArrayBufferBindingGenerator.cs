@@ -186,7 +186,6 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
                     // Console.WriteLine("- VertexFields: {{string.Join(", ", model.VertexFields.Select(f => $"{f.Name}: {f.Type}"))}}");
 
                     GL.BindBuffer(GL.ARRAY_BUFFER, vertexBuffer);
-                    GL.BufferData(GL.ARRAY_BUFFER, vertices, GL.STATIC_DRAW);
 
             """;
 
@@ -224,13 +223,21 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
         }
 
         var closing = """
+                    GL.BufferData(GL.ARRAY_BUFFER, vertices, GL.STATIC_DRAW);
                 }
             }
 
             """;
         sourceBuilder.Append(closing);
         var sourceText = SourceText.From(sourceBuilder.ToString(), Encoding.UTF8);
-        context.AddSource($"{model.ClassName}_{model.MethodName}_{model.VertexType}.g.cs", sourceText);
+        string fileNameHint = $"{model.ClassName}_{model.MethodName}_{model.VertexType}.g.cs";
+        context.AddSource(fileNameHint, sourceText);
+
+// For troubleshooting, uncomment to write the generated source to a file in the obj directory
+// #pragma warning disable RS1035 // Do not use APIs banned for analyzers
+//         var objDir = @"C:\Source\GenShaderBinding\GenShaderBinding.GameApp\obj\Debug\net8.0";
+//         File.WriteAllText(Path.Combine(objDir, fileNameHint), sourceText.ToString());
+// #pragma warning restore RS1035 // Do not use APIs banned for analyzers
     }
 
     private static void ExceptionToError(SourceProductionContext context, Location location, UsageException ex)
