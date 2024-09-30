@@ -42,7 +42,8 @@ struct ColorVertex2(Vector2 position, Vector4 color)
 }
 ```
 
-And shader with `a_VertexPosition` and `a_VertexColor` input attribute variables:
+And shader with `a_VertexPosition` and `a_VertexColor` input attribute variables.
+(The source generator will parse the shader to identify attribute names that match the vertex structure fields.)
 
 ```glsl
 attribute vec4 a_VertexPosition;
@@ -56,16 +57,32 @@ void main(void) {
 }
 ```
 
+We can leverage the `SetupVertexAttrib` attribute to generate the necessary OpenGL calls:
+
+```csharp
+// Declare the partial class which will be implemented by the source generator.
+[SetupVertexAttrib("Shaders/Basic_vert.glsl", typeof(ColorVertex2))]
+partial class ColorVertex2ShaderBinding
+{
+    // While not strictly necessary, these method declarations can help the IDE with code completion
+
+    // Call SetVertexData during initialization to set up the vertex buffer and pass the data to the GPU.
+    internal static partial void SetVertexData(JSObject shaderProgram,
+                                               JSObject vertexBuffer,
+                                               Span<ColorVertex2> vertices,
+                                               List<int> vertexAttributeLocations);
+
+    // Call EnableVertexBuffer during rendering if the vertex buffer needs to be re-enabled,
+    // or if you are switching between multiple vertex buffers.
+    internal static void EnableVertexBuffer(JSObject vertexBuffer,
+                                            List<int>? vertexAttributeLocations = null);
+}
+```
+
+In the main program, we can now use the generated code to set up the vertex buffer:
 ```csharp
 partial class HelloTriangle
 {
-    // Declare the partial function which will be implemented by the source generator.
-    [ThoughtStuff.GLSourceGen.SetupVertexAttrib("Shaders/Basic_vert.glsl")]
-    partial void SetBufferData(JSObject shaderProgram,
-                               JSObject vertexBuffer,
-                               Span<ColorVertex2> vertices,
-                               List<int> vertexAttributeLocations);
-
     public void InitializeScene(IShaderLoader shaderLoader)
     {
         var shaderProgram = shaderLoader.LoadShaderProgram("Shaders/Basic_vert.glsl", ...);
@@ -81,52 +98,95 @@ partial class HelloTriangle
         // Create a buffer for the triangle's vertex positions.
         var positionBuffer = GL.CreateBuffer();
         // Call the generated function which sets up the vertex buffer and passes the data to the GPU.
-        SetBufferData(shaderProgram, positionBuffer, vertices, vertexAttributeLocations);
+        ColorVertex2ShaderBinding.SetBufferData(shaderProgram, positionBuffer, vertices, vertexAttributeLocations);
+    }
+
+    public void Render()
+    {
+        GL.Clear(GL.COLOR_BUFFER_BIT);
+        GL.DrawArrays(GL.TRIANGLES, 0, 3);
     }
 ```
 
 The source generator will generate the following code:
 
 ```csharp
-partial class HelloTriangle
+
+partial class ColorVertex2ShaderBinding
 {
-    partial void SetBufferData(JSObject shaderProgram,
-                               JSObject vertexBuffer,
-                               Span<ColorVertex2> vertices,
-                               List<int> vertexAttributeLocations)
+    // Private "cache" fields for attribute locations, strides, and offsets
+    private static int _ColorVertex2_Position_location;
+    private static int _ColorVertex2_Position_stride;
+    private static int _ColorVertex2_Position_offset;
+    private static int _ColorVertex2_Color_location;
+    private static int _ColorVertex2_Color_stride;
+    private static int _ColorVertex2_Color_offset;
+    private static bool _ColorVertex2_vertexLayoutInitialized;
+
+    private static void _InitVertexLayoutFields_ColorVertex2(JSObject shaderProgram)
     {
-        // Bind the buffer to the ARRAY_BUFFER target.
+        if (_ColorVertex2_vertexLayoutInitialized)
+            return;
+
+        // Cache the attribute locations, strides, and offsets
+        _ColorVertex2_Position_location = GL.GetAttribLocation(shaderProgram, "a_VertexPosition");
+        if (_ColorVertex2_Position_location == -1)
+            throw new InvalidOperationException($"Could not find shader attribute location for a_VertexPosition.");
+        _ColorVertex2_Position_stride = Marshal.SizeOf<GenShaderBinding.GameApp.Examples.ColorVertex2>();
+        _ColorVertex2_Position_offset = Marshal.OffsetOf<GenShaderBinding.GameApp.Examples.ColorVertex2>(nameof(GenShaderBinding.GameApp.Examples.ColorVertex2.Position)).ToInt32();
+
+        _ColorVertex2_Color_location = GL.GetAttribLocation(shaderProgram, "a_VertexColor");
+        if (_ColorVertex2_Color_location == -1)
+            throw new InvalidOperationException($"Could not find shader attribute location for a_VertexColor.");
+        _ColorVertex2_Color_stride = Marshal.SizeOf<GenShaderBinding.GameApp.Examples.ColorVertex2>();
+        _ColorVertex2_Color_offset = Marshal.OffsetOf<GenShaderBinding.GameApp.Examples.ColorVertex2>(nameof(GenShaderBinding.GameApp.Examples.ColorVertex2.Color)).ToInt32();
+
+        _ColorVertex2_vertexLayoutInitialized = true;
+    }
+
+    internal static void EnableVertexBuffer(JSObject vertexBuffer,
+                                                          List<int>? vertexAttributeLocations = null)
+    {
+        if (!_ColorVertex2_vertexLayoutInitialized)
+            throw new InvalidOperationException("Vertex layout fields have not been initialized.");
+
+        // Bind the vertex buffer
         GL.BindBuffer(GL.ARRAY_BUFFER, vertexBuffer);
-        // Copy the vertex data to the GPU.
+
+        // Enable the vertex attributes
+        vertexAttributeLocations?.Add(_ColorVertex2_Position_location);
+        GL.VertexAttribPointer(_ColorVertex2_Position_location,
+                            size: 2,
+                            type: GL.FLOAT,
+                            normalized: false,
+                            stride: _ColorVertex2_Position_stride,
+                            offset: _ColorVertex2_Position_offset);
+        GL.EnableVertexAttribArray(_ColorVertex2_Position_location);
+
+        vertexAttributeLocations?.Add(_ColorVertex2_Color_location);
+        GL.VertexAttribPointer(_ColorVertex2_Color_location,
+                            size: 4,
+                            type: GL.FLOAT,
+                            normalized: false,
+                            stride: _ColorVertex2_Color_stride,
+                            offset: _ColorVertex2_Color_offset);
+        GL.EnableVertexAttribArray(_ColorVertex2_Color_location);
+
+    }
+
+    internal static partial void SetVertexData(JSObject shaderProgram,
+                                                    JSObject vertexBuffer,
+                                                    Span<GenShaderBinding.GameApp.Examples.ColorVertex2> vertices,
+                                                    List<int> vertexAttributeLocations)
+    {
+        // Initialize the vertex layout fields
+        _InitVertexLayoutFields_ColorVertex2(shaderProgram);
+
+        // Enable the vertex buffer and attributes
+        EnableVertexBuffer(vertexBuffer, vertexAttributeLocations);
+
+        // Upload the vertex data to the GPU
         GL.BufferData(GL.ARRAY_BUFFER, vertices, GL.STATIC_DRAW);
-
-        // Get the location of the 'a_Position' attribute variable in the shader program.
-        int positionLocation = GL.GetAttribLocation(shaderProgram, "a_Position");
-        // Keep track of the attribute locations so they can be disabled or modified (e.g. for instancing)
-        vertexAttributeLocations.Add(positionLocation);
-        // Enable the 'a_Position' attribute.
-        GL.EnableVertexAttribArray(positionLocation);
-        // Define the layout of the 'a_Position' attribute.
-        GL.VertexAttribPointer(positionLocation,
-                               size: 2, // Vector2 has 2 floats
-                               type: GL.FLOAT,
-                               normalized: false,
-                               stride: Marshal.SizeOf<ColorVertex2>(),
-                               offset: Marshal.OffsetOf<ColorVertex2>(nameof(ColorVertex2.Position)).ToInt32());
-
-        // Get the location of the 'a_Color' attribute in the shader program.
-        int colorLocation = GL.GetAttribLocation(shaderProgram, "a_Color");
-        // Keep track of the attribute locations so they can be disabled or modified (e.g. for instancing)
-        vertexAttributeLocations.Add(colorLocation);
-        // Enable the 'a_Color' attribute.
-        GL.EnableVertexAttribArray(colorLocation);
-        // Define the layout of the 'a_Color' attribute.
-        GL.VertexAttribPointer(colorLocation,
-                               size: 4, // Vector4 has 4 floats
-                               type: GL.FLOAT,
-                               normalized: false,
-                               stride: Marshal.SizeOf<ColorVertex2>(),
-                               offset: Marshal.OffsetOf<ColorVertex2>(nameof(ColorVertex2.Color)).ToInt32());
     }
 }
 ```

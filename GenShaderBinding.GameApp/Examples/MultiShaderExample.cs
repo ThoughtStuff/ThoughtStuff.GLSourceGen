@@ -31,76 +31,6 @@ public sealed partial class MultiShaderExample : IGame
 
     public string? OverlayText => "Multi-Shader Example";
 
-    [SetupVertexAttrib("Shaders/Basic/TextureUnlit_vert.glsl")]
-    partial void BindVertexBufferData(JSObject shaderProgram,
-                                      JSObject vertexBuffer,
-                                      Span<TextureVertex2> vertices,
-                                      List<int> vertexAttributeLocations);
-
-    private void SetupVertexLayoutTextured()
-    {
-        var shaderProgram = _shaderProgramTextured!;
-        var PositionLocation = GL.GetAttribLocation(shaderProgram, "a_VertexPosition");
-        if (PositionLocation == -1)
-            throw new InvalidOperationException($"Could not find shader attribute location for a_VertexPosition.");
-        GL.EnableVertexAttribArray(PositionLocation);
-        // vertexAttributeLocations.Add(PositionLocation);
-        GL.VertexAttribPointer(PositionLocation,
-                               size: 2,
-                               type: GL.FLOAT,
-                               normalized: false,
-                               stride: Marshal.SizeOf<GenShaderBinding.GameApp.Examples.TextureVertex2>(),
-                               offset: Marshal.OffsetOf<GenShaderBinding.GameApp.Examples.TextureVertex2>(nameof(GenShaderBinding.GameApp.Examples.TextureVertex2.Position)).ToInt32());
-
-
-        var TextureCoordLocation = GL.GetAttribLocation(shaderProgram, "a_TextureCoord");
-        if (TextureCoordLocation == -1)
-            throw new InvalidOperationException($"Could not find shader attribute location for a_TextureCoord.");
-        GL.EnableVertexAttribArray(TextureCoordLocation);
-        // vertexAttributeLocations.Add(TextureCoordLocation);
-        GL.VertexAttribPointer(TextureCoordLocation,
-                               size: 2,
-                               type: GL.FLOAT,
-                               normalized: false,
-                               stride: Marshal.SizeOf<GenShaderBinding.GameApp.Examples.TextureVertex2>(),
-                               offset: Marshal.OffsetOf<GenShaderBinding.GameApp.Examples.TextureVertex2>(nameof(GenShaderBinding.GameApp.Examples.TextureVertex2.TextureCoord)).ToInt32());
-    }
-
-    [SetupVertexAttrib("Shaders/Perspective3D/ColorPassthrough_vert.glsl")]
-    partial void BindVertexBufferData(JSObject shaderProgram,
-                                      JSObject vertexBuffer,
-                                      Span<ColorVertex3> vertices,
-                                      List<int> vertexAttributeLocations);
-
-    private void SetupVertexLayoutPerspective()
-    {
-        var shaderProgram = _shaderProgramPerspective!;
-        var PositionLocation = GL.GetAttribLocation(shaderProgram, "a_VertexPosition");
-        if (PositionLocation == -1)
-            throw new InvalidOperationException($"Could not find shader attribute location for a_VertexPosition.");
-        GL.EnableVertexAttribArray(PositionLocation);
-        // vertexAttributeLocations.Add(PositionLocation);
-        GL.VertexAttribPointer(PositionLocation,
-                               size: 3,
-                               type: GL.FLOAT,
-                               normalized: false,
-                               stride: Marshal.SizeOf<GenShaderBinding.GameApp.Examples.ColorVertex3>(),
-                               offset: Marshal.OffsetOf<GenShaderBinding.GameApp.Examples.ColorVertex3>(nameof(GenShaderBinding.GameApp.Examples.ColorVertex3.Position)).ToInt32());
-
-
-        var ColorLocation = GL.GetAttribLocation(shaderProgram, "a_VertexColor");
-        if (ColorLocation == -1)
-            throw new InvalidOperationException($"Could not find shader attribute location for a_VertexColor.");
-        GL.EnableVertexAttribArray(ColorLocation);
-        // vertexAttributeLocations.Add(ColorLocation);
-        GL.VertexAttribPointer(ColorLocation,
-                               size: 3,
-                               type: GL.FLOAT,
-                               normalized: false,
-                               stride: Marshal.SizeOf<GenShaderBinding.GameApp.Examples.ColorVertex3>(),
-                               offset: Marshal.OffsetOf<GenShaderBinding.GameApp.Examples.ColorVertex3>(nameof(GenShaderBinding.GameApp.Examples.ColorVertex3.Color)).ToInt32());
-    }
-
     public async Task LoadAssetsEssentialAsync(IShaderLoader shaderLoader, ITextureLoader textureLoader)
     {
         // Load the shader program
@@ -137,7 +67,10 @@ public sealed partial class MultiShaderExample : IGame
         ];
         // Create a buffer for the quad's vertices
         _vertexBufferTextured = GL.CreateBuffer();
-        BindVertexBufferData(_shaderProgramTextured, _vertexBufferTextured, quadVertices, _vertexAttributeLocationsTextured);
+        TextureVertex2ShaderBinding.SetVertexData(_shaderProgramTextured,
+                                                  _vertexBufferTextured,
+                                                  quadVertices,
+                                                  _vertexAttributeLocationsTextured);
 
         // Enable alpha blending for the textures which have an alpha channel
         GL.Enable(GL.BLEND);
@@ -176,7 +109,10 @@ public sealed partial class MultiShaderExample : IGame
 
         // Create and bind the vertex buffer
         _vertexBufferTetrahedron = GL.CreateBuffer();
-        BindVertexBufferData(_shaderProgramPerspective, _vertexBufferTetrahedron, tetrahedronVertices, _vertexAttributeLocationsPerspective);
+        ColorVertex3ShaderBinding.SetVertexData(_shaderProgramPerspective,
+                                                _vertexBufferTetrahedron,
+                                                tetrahedronVertices,
+                                                _vertexAttributeLocationsPerspective);
 
         // Enable depth testing
         GL.Enable(GL.DEPTH_TEST);
@@ -213,10 +149,8 @@ public sealed partial class MultiShaderExample : IGame
         {
             // Shader
             GL.UseProgram(_shaderProgramTextured);
-            // Vertex buffer
-            GL.BindBuffer(GL.ARRAY_BUFFER, _vertexBufferTextured);
-            // Vertex layout
-            SetupVertexLayoutTextured();
+            // Enable VBO + Vertex layout
+            TextureVertex2ShaderBinding.EnableVertexBuffer(_vertexBufferTextured);
             // Draw
             GL.DrawArrays(GL.TRIANGLE_STRIP, 0, 4);
         }
@@ -227,10 +161,8 @@ public sealed partial class MultiShaderExample : IGame
         {
             // Shader
             GL.UseProgram(_shaderProgramPerspective);
-            // Set Vertex buffer
-            GL.BindBuffer(GL.ARRAY_BUFFER, _vertexBufferTetrahedron!);
-            // Setup vertex layout
-            SetupVertexLayoutPerspective();
+            // Enable VBO + Vertex layout
+            ColorVertex3ShaderBinding.EnableVertexBuffer(_vertexBufferTetrahedron);
 
             // Create Model-View matrix (rotation)
             var modelViewMatrix = Matrix4x4.CreateRotationY(ToRadians(_rotationAngleY)) *

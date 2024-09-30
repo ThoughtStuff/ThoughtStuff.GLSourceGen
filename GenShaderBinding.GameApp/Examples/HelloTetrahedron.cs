@@ -14,6 +14,15 @@ struct ColorVertex3(Vector3 position, Vector3 color)
     public Vector3 Color = color;
 }
 
+[SetupVertexAttrib("Shaders/Perspective3D/ColorPassthrough_vert.glsl", typeof(ColorVertex3))]
+partial class ColorVertex3ShaderBinding
+{
+    internal static partial void SetVertexData(JSObject shaderProgram,
+                                               JSObject vertexBuffer,
+                                               Span<ColorVertex3> vertices,
+                                               List<int> vertexAttributeLocations);
+}
+
 sealed partial class HelloTetrahedron : IGame
 {
     private float _rotationAngleX = 0f;
@@ -32,12 +41,6 @@ sealed partial class HelloTetrahedron : IGame
         // No essential assets for this demo.
         return Task.CompletedTask;
     }
-
-    [SetupVertexAttrib("Shaders/Perspective3D/ColorPassthrough_vert.glsl")]
-    partial void BindVertexBufferData(JSObject shaderProgram,
-                                      JSObject vertexBuffer,
-                                      Span<ColorVertex3> vertices,
-                                      List<int> vertexAttributeLocations);
 
     public void InitializeScene(IShaderLoader shaderLoader)
     {
@@ -71,7 +74,10 @@ sealed partial class HelloTetrahedron : IGame
 
         // Create and bind the vertex buffer
         _vertexBuffer = GL.CreateBuffer();
-        BindVertexBufferData(_shaderProgram, _vertexBuffer, vertices, _vertexAttributeLocations);
+        ColorVertex3ShaderBinding.SetVertexData(_shaderProgram,
+                                                _vertexBuffer,
+                                                vertices,
+                                                _vertexAttributeLocations);
 
         // Enable depth testing
         GL.Enable(GL.DEPTH_TEST);

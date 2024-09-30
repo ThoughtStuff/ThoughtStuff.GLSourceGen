@@ -8,6 +8,24 @@ namespace GenShaderBinding.GameApp.Examples.InstanceParticles;
 // Animated Arrows by SpikerMan
 // https://spikerman.itch.io/animated-arrows-cursors
 
+[SetupVertexAttrib("Shaders/Transformed2D/SpriteSheet_vert.glsl", typeof(TextureVertex2))]
+partial class SpriteTextureVertex2ShaderBinding
+{
+    internal static partial void SetVertexData(JSObject shaderProgram,
+                                               JSObject vertexBuffer,
+                                               Span<TextureVertex2> vertices,
+                                               List<int> vertexAttributeLocations);
+}
+
+[SetupVertexAttrib("Shaders/Transformed2D/SpriteSheet_vert.glsl", typeof(InstanceData))]
+partial class InstanceDataShaderBinding
+{
+    internal static partial void SetVertexData(JSObject shaderProgram,
+                                               JSObject vertexBuffer,
+                                               Span<InstanceData> vertices,
+                                               List<int> vertexAttributeLocations);
+}
+
 sealed partial class InstanceParticlesExample : IGame
 {
     private const int SpawnParticleCount = 25;
@@ -73,17 +91,6 @@ sealed partial class InstanceParticlesExample : IGame
         GL.Uniform1f(uPaddingBottomLoc, paddingBottom);
     }
 
-    [SetupVertexAttrib("Shaders/Transformed2D/SpriteSheet_vert.glsl")]
-    partial void BindVertexBufferData(JSObject shaderProgram,
-                                      JSObject vertexBuffer,
-                                      Span<TextureVertex2> vertices,
-                                      List<int> vertexAttributeLocations);
-    [SetupVertexAttrib("Shaders/Transformed2D/SpriteSheet_vert.glsl")]
-    partial void BindVertexBufferData(JSObject shaderProgram,
-                                      JSObject vertexBuffer,
-                                      Span<InstanceData> vertices,
-                                      List<int> vertexAttributeLocations);
-
     /// <inheritdoc/>
     public void InitializeScene(IShaderLoader shaderLoader)
     {
@@ -104,14 +111,14 @@ sealed partial class InstanceParticlesExample : IGame
         // Create and bind the position and texture buffer for the quad vertices
         _positionBuffer = GL.CreateBuffer();
         _buffers.Add(_positionBuffer);
-        BindVertexBufferData(_shaderProgram, _positionBuffer, vertices, _vertexAttributeLocations);
+        SpriteTextureVertex2ShaderBinding.SetVertexData(_shaderProgram, _positionBuffer, vertices, _vertexAttributeLocations);
 
         // Create a buffer for instance data (transformation and sprite frame index)
         _instanceVBO = GL.CreateBuffer();
         _buffers.Add(_instanceVBO);
         Span<InstanceData> instanceData = stackalloc InstanceData[1];
         List<int> instanceAttribLocations = [];
-        BindVertexBufferData(_shaderProgram, _instanceVBO, instanceData, instanceAttribLocations);
+        InstanceDataShaderBinding.SetVertexData(_shaderProgram, _instanceVBO, instanceData, instanceAttribLocations);
         foreach (var location in instanceAttribLocations)
         {
             // Set divisor to 1 so that the buffer is treated as instance data (1 per particle)

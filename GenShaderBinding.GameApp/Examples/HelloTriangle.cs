@@ -12,6 +12,15 @@ struct ColorVertex2(Vector2 position, Vector4 color)
     public Vector4 Color = color;
 }
 
+[SetupVertexAttrib("Shaders/Basic/ColorPassthrough_vert.glsl", typeof(ColorVertex2))]
+partial class ColorVertex2ShaderBinding
+{
+    internal static partial void SetVertexData(JSObject shaderProgram,
+                                               JSObject vertexBuffer,
+                                               Span<ColorVertex2> vertices,
+                                               List<int> vertexAttributeLocations);
+}
+
 sealed partial class HelloTriangle : IGame
 {
     private JSObject? _shaderProgram;
@@ -21,12 +30,6 @@ sealed partial class HelloTriangle : IGame
 
 
     public string? OverlayText => "Hello, Triangle";
-
-    [SetupVertexAttrib("Shaders/Basic/ColorPassthrough_vert.glsl")]
-    partial void SetBufferData(JSObject shaderProgram,
-                               JSObject vertexBuffer,
-                               Span<ColorVertex2> vertices,
-                               List<int> vertexAttributeLocations);
 
     public void InitializeScene(IShaderLoader shaderLoader)
     {
@@ -42,7 +45,10 @@ sealed partial class HelloTriangle : IGame
         ];
         // Create a buffer for the triangle's vertex positions.
         _positionBuffer = GL.CreateBuffer();
-        SetBufferData(_shaderProgram, _positionBuffer, vertices, _vertexAttributeLocations);
+        ColorVertex2ShaderBinding.SetVertexData(_shaderProgram,
+                                                _positionBuffer,
+                                                vertices,
+                                                _vertexAttributeLocations);
 
         // Set the clear color to cornflower blue
         GL.ClearColor(0.392f, 0.584f, 0.929f, 1.0f);
