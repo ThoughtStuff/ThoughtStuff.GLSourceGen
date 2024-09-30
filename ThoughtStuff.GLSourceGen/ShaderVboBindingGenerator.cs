@@ -220,7 +220,7 @@ public class ShaderVboBindingGenerator : IIncrementalGenerator
                 if ({{vertexLayoutInitializedFlag}})
                     return;
 
-                // Initialize the fields here
+                // Cache the attribute locations, strides, and offsets
         """);
 
         foreach (var field in model.VertexFields)
