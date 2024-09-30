@@ -156,8 +156,21 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
         }
     }
 
+    // Record type to hold the field names
+    private record FieldNames(string LocationVarName, string StrideVarName, string OffsetVarName);
+
+    // Method to generate unique field names
+    private static FieldNames GenerateFieldNames(string vertexTypeShortName, string fieldName)
+    {
+        var uniqueFieldIdentifier = $"{vertexTypeShortName}_{fieldName}";
+        var locationVarName = $"_{uniqueFieldIdentifier}_location";
+        var strideVarName = $"_{uniqueFieldIdentifier}_stride";
+        var offsetVarName = $"_{uniqueFieldIdentifier}_offset";
+        return new FieldNames(locationVarName, strideVarName, offsetVarName);
+    }
+
     private static void GenerateSourceCore(SourceProductionContext context,
-                                           (Model model, ImmutableArray<KeyValuePair<string, string>> shaderSources) input)
+                                        (Model model, ImmutableArray<KeyValuePair<string, string>> shaderSources) input)
     {
         var (model, shaderSourcesArray) = input;
         var shaderSources = shaderSourcesArray.ToDictionary(pair => pair.Key, pair => pair.Value);
@@ -168,6 +181,8 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
             ShaderParsing.ExtractAttributesFromSource(shaderSource);
 
         var sourceBuilder = new StringBuilder();
+        var vertexTypeFullName = model.VertexTypeFullName;
+        var vertexTypeShortName = model.VertexTypeShortName;
 
         // Start building the generated code
         sourceBuilder.AppendLine($$"""
@@ -184,41 +199,73 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
         // Declare private member variables with unique names
         foreach (var field in model.VertexFields)
         {
-            // Generate unique names based on method and field names
-            var uniqueFieldIdentifier = $"{model.VertexTypeShortName}_{field.Name}";
-            var locationVarName = $"_{uniqueFieldIdentifier}_location";
-            var strideVarName = $"_{uniqueFieldIdentifier}_stride";
-            var offsetVarName = $"_{uniqueFieldIdentifier}_offset";
+            var fieldNames = GenerateFieldNames(vertexTypeShortName, field.Name);
 
             // Declare the private fields
-            sourceBuilder.AppendLine($"    private int {locationVarName};");
-            sourceBuilder.AppendLine($"    private int {strideVarName};");
-            sourceBuilder.AppendLine($"    private int {offsetVarName};");
+            sourceBuilder.AppendLine($"    private int {fieldNames.LocationVarName};");
+            sourceBuilder.AppendLine($"    private int {fieldNames.StrideVarName};");
+            sourceBuilder.AppendLine($"    private int {fieldNames.OffsetVarName};");
         }
 
-        // Begin the partial method implementation
-        sourceBuilder.Append($$"""
+        // Generate the unique bool flag for the vertex type
+        var vertexLayoutInitializedFlag = $"_{vertexTypeShortName}_vertexLayoutInitialized";
+        sourceBuilder.AppendLine($"    private bool {vertexLayoutInitializedFlag};");
 
-            partial void {{model.MethodName}}(JSObject shaderProgram,
-                                              JSObject vertexBuffer,
-                                              Span<{{model.VertexTypeFullName}}> vertices,
-                                              List<int> vertexAttributeLocations)
+        // Generate the private method to initialize the vertex layout fields
+        var initMethodName = $"_InitVertexLayoutFields_{vertexTypeShortName}";
+        sourceBuilder.AppendLine($$"""
+
+            private void {{initMethodName}}(JSObject shaderProgram)
             {
-                GL.BindBuffer(GL.ARRAY_BUFFER, vertexBuffer);
+                if ({{vertexLayoutInitializedFlag}})
+                    return;
+
+                // Initialize the fields here
         """);
 
-        var vertexType = model.VertexTypeFullName;
         foreach (var field in model.VertexFields)
         {
-            // Generate unique names for member variables
-            var uniqueFieldIdentifier = $"{model.VertexTypeShortName}_{field.Name}";
-            var locationVarName = $"_{uniqueFieldIdentifier}_location";
-            var strideVarName = $"_{uniqueFieldIdentifier}_stride";
-            var offsetVarName = $"_{uniqueFieldIdentifier}_offset";
+            var fieldNames = GenerateFieldNames(vertexTypeShortName, field.Name);
 
             // Match C# field name to GLSL variable name
             var glslVariableName = ShaderInputMatching.GetInputVariableName(field, shaderAttributeVariables);
             shaderAttributeVariables.Remove(shaderAttributeVariables.First(v => v.Name == glslVariableName));
+
+            // Assign values to the private member variables
+            sourceBuilder.AppendLine($$"""
+                    {{fieldNames.LocationVarName}} = GL.GetAttribLocation(shaderProgram, "{{glslVariableName}}");
+                    if ({{fieldNames.LocationVarName}} == -1)
+                        throw new InvalidOperationException($"Could not find shader attribute location for {{glslVariableName}}.");
+                    {{fieldNames.StrideVarName}} = Marshal.SizeOf<{{vertexTypeFullName}}>();
+                    {{fieldNames.OffsetVarName}} = Marshal.OffsetOf<{{vertexTypeFullName}}>(nameof({{vertexTypeFullName}}.{{field.Name}})).ToInt32();
+
+            """);
+        }
+
+        // Set the initialized flag to true
+        sourceBuilder.AppendLine($$"""
+                {{vertexLayoutInitializedFlag}} = true;
+            }
+        """);
+
+        // Begin the partial method implementation
+        sourceBuilder.AppendLine($$"""
+
+            partial void {{model.MethodName}}(JSObject shaderProgram,
+                                            JSObject vertexBuffer,
+                                            Span<{{vertexTypeFullName}}> vertices,
+                                            List<int> vertexAttributeLocations)
+            {
+                GL.BindBuffer(GL.ARRAY_BUFFER, vertexBuffer);
+
+                // Initialize the vertex layout fields
+                {{initMethodName}}(shaderProgram);
+
+        """);
+
+        foreach (var field in model.VertexFields)
+        {
+            var fieldNames = GenerateFieldNames(vertexTypeShortName, field.Name);
 
             int size = field.Type switch
             {
@@ -226,46 +273,40 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
                 "Vector2" => 2,
                 "Vector3" => 3,
                 "Vector4" => 4,
-                _ => throw new UsageException($"Unsupported field type in {vertexType}: {field.Type}")
+                _ => throw new UsageException($"Unsupported field type in {vertexTypeFullName}: {field.Type}")
             };
 
-            // Assign values to the private member variables
+            // Use the initialized member variables
             sourceBuilder.AppendLine($$"""
-
-                    {{locationVarName}} = GL.GetAttribLocation(shaderProgram, "{{glslVariableName}}");
-                    if ({{locationVarName}} == -1)
-                        throw new InvalidOperationException($"Could not find shader attribute location for {{glslVariableName}}.");
-                    GL.EnableVertexAttribArray({{locationVarName}});
-                    vertexAttributeLocations.Add({{locationVarName}});
-
-                    {{strideVarName}} = Marshal.SizeOf<{{vertexType}}>();
-                    {{offsetVarName}} = Marshal.OffsetOf<{{vertexType}}>(nameof({{vertexType}}.{{field.Name}})).ToInt32();
-
-                    GL.VertexAttribPointer({{locationVarName}},
+                    vertexAttributeLocations.Add({{fieldNames.LocationVarName}});
+                    GL.VertexAttribPointer({{fieldNames.LocationVarName}},
                                         size: {{size}},
                                         type: GL.FLOAT,
                                         normalized: false,
-                                        stride: {{strideVarName}},
-                                        offset: {{offsetVarName}});
+                                        stride: {{fieldNames.StrideVarName}},
+                                        offset: {{fieldNames.OffsetVarName}});
+                    GL.EnableVertexAttribArray({{fieldNames.LocationVarName}});
+
             """);
         }
 
         // Close the method and class definitions
         sourceBuilder.Append($$"""
+
                 GL.BufferData(GL.ARRAY_BUFFER, vertices, GL.STATIC_DRAW);
             }
         }
         """);
 
         var sourceText = SourceText.From(sourceBuilder.ToString(), Encoding.UTF8);
-        string fileNameHint = $"{model.ClassName}_{model.MethodName}_{model.VertexTypeShortName}.g.cs";
+        string fileNameHint = $"{model.ClassName}_{model.MethodName}_{vertexTypeShortName}.g.cs";
         context.AddSource(fileNameHint, sourceText);
 
         // For troubleshooting, uncomment to write the generated source to a file in the obj directory
-#pragma warning disable RS1035 // Do not use APIs banned for analyzers
+        #pragma warning disable RS1035 // Do not use APIs banned for analyzers
         var objDir = @"C:\Source\GenShaderBinding\GenShaderBinding.GameApp\obj\Debug\net8.0";
         File.WriteAllText(Path.Combine(objDir, fileNameHint), sourceText.ToString());
-#pragma warning restore RS1035 // Do not use APIs banned for analyzers
+        #pragma warning restore RS1035 // Do not use APIs banned for analyzers
     }
 
     private static void ExceptionToError(SourceProductionContext context, Location location, UsageException ex)
