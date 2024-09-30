@@ -23,7 +23,8 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
                          string Namespace,
                          string ClassName,
                          string MethodName,
-                         string VertexType,
+                         string VertexTypeFullName,
+                         string VertexTypeShortName,
                          List<VariableDeclaration> VertexFields,
                          Location Location);
 
@@ -98,16 +99,17 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
                                      .Select(f => new VariableDeclaration(f.Name, f.Type.Name))
                                      .ToList();
 
-        var format = SymbolDisplayFormat.FullyQualifiedFormat.WithGlobalNamespaceStyle(
+        var fullyQualified = SymbolDisplayFormat.FullyQualifiedFormat.WithGlobalNamespaceStyle(
             SymbolDisplayGlobalNamespaceStyle.Omitted);
-        var shortFormat = SymbolDisplayFormat.MinimallyQualifiedFormat;
+        var minimalName = SymbolDisplayFormat.MinimallyQualifiedFormat;
         return new Model(
             ShaderPath: shaderPath,
             // TODO: handle the case where the type is in a global namespace, nested, etc.
-            Namespace: containingClass.ContainingNamespace?.ToDisplayString(format),
+            Namespace: containingClass.ContainingNamespace?.ToDisplayString(fullyQualified),
             ClassName: containingClass.Name,
             MethodName: context.TargetSymbol.Name,
-            VertexType: vertexType.ToDisplayString(shortFormat),
+            VertexTypeFullName: vertexType.ToDisplayString(fullyQualified),
+            VertexTypeShortName: vertexType.ToDisplayString(minimalName),
             VertexFields: vertexFields,
             Location: context.TargetSymbol.Locations.FirstOrDefault());
     }
@@ -153,6 +155,7 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
             ExceptionToError(context, input.model.Location, internalException);
         }
     }
+
     private static void GenerateSourceCore(SourceProductionContext context,
                                            (Model model, ImmutableArray<KeyValuePair<string, string>> shaderSources) input)
     {
@@ -182,7 +185,7 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
         foreach (var field in model.VertexFields)
         {
             // Generate unique names based on method and field names
-            var uniqueFieldIdentifier = $"{model.VertexType}_{field.Name}";
+            var uniqueFieldIdentifier = $"{model.VertexTypeShortName}_{field.Name}";
             var locationVarName = $"_{uniqueFieldIdentifier}_location";
             var strideVarName = $"_{uniqueFieldIdentifier}_stride";
             var offsetVarName = $"_{uniqueFieldIdentifier}_offset";
@@ -198,25 +201,17 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
 
             partial void {{model.MethodName}}(JSObject shaderProgram,
                                               JSObject vertexBuffer,
-                                              Span<{{model.VertexType}}> vertices,
+                                              Span<{{model.VertexTypeFullName}}> vertices,
                                               List<int> vertexAttributeLocations)
             {
-                // Console.WriteLine("Binding vertex buffer data");
-                // Print out Model members for debugging
-                // Console.WriteLine("- Namespace: {{model.Namespace}}");
-                // Console.WriteLine("- ClassName: {{model.ClassName}}");
-                // Console.WriteLine("- MethodName: {{model.MethodName}}");
-                // Console.WriteLine("- VertexType: {{model.VertexType}}");
-                // Console.WriteLine("- VertexFields: {{string.Join(", ", model.VertexFields.Select(f => $"{f.Name}: {f.Type}"))}}");
-
                 GL.BindBuffer(GL.ARRAY_BUFFER, vertexBuffer);
         """);
 
-        var vertexType = model.VertexType;
+        var vertexType = model.VertexTypeFullName;
         foreach (var field in model.VertexFields)
         {
             // Generate unique names for member variables
-            var uniqueFieldIdentifier = $"{model.VertexType}_{field.Name}";
+            var uniqueFieldIdentifier = $"{model.VertexTypeShortName}_{field.Name}";
             var locationVarName = $"_{uniqueFieldIdentifier}_location";
             var strideVarName = $"_{uniqueFieldIdentifier}_stride";
             var offsetVarName = $"_{uniqueFieldIdentifier}_offset";
@@ -263,7 +258,7 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
         """);
 
         var sourceText = SourceText.From(sourceBuilder.ToString(), Encoding.UTF8);
-        string fileNameHint = $"{model.ClassName}_{model.MethodName}_{model.VertexType}.g.cs";
+        string fileNameHint = $"{model.ClassName}_{model.MethodName}_{model.VertexTypeShortName}.g.cs";
         context.AddSource(fileNameHint, sourceText);
 
         // For troubleshooting, uncomment to write the generated source to a file in the obj directory
