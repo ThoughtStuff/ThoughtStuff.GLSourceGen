@@ -11,8 +11,13 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace ThoughtStuff.GLSourceGen;
 
+/// <summary>
+/// Generates code to bind vertex buffer objects (VBOs) to shader attributes.
+/// Arguments to GL VertexAttribPointer are generated at compile time
+/// based on the vertex struct fields.
+/// </summary>
 [Generator]
-public class GlArrayBufferBindingGenerator : IIncrementalGenerator
+public class ShaderVboBindingGenerator : IIncrementalGenerator
 {
     const string Namespace = "ThoughtStuff.GLSourceGen";
     const string GeneratedAttributeName = "SetupVertexAttribAttribute";
