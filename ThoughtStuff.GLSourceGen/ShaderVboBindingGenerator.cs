@@ -255,6 +255,9 @@ public class ShaderVboBindingGenerator : IIncrementalGenerator
             internal static void {{EnableVertexBufferMethodName}}(JSObject vertexBuffer,
                                                                   List<int>? vertexAttributeLocations = null)
             {
+                if (!{{vertexLayoutInitializedFlag}})
+                    throw new InvalidOperationException("Vertex layout fields have not been initialized.");
+
                 // Bind the vertex buffer
                 GL.BindBuffer(GL.ARRAY_BUFFER, vertexBuffer);
 
@@ -276,9 +279,7 @@ public class ShaderVboBindingGenerator : IIncrementalGenerator
 
             // Save the locations if the list is provided
             sourceBuilder.AppendLine($$"""
-                    if (vertexAttributeLocations is not null)
-                        vertexAttributeLocations.Add({{fieldNames.LocationVarName}});
-
+                    vertexAttributeLocations?.Add({{fieldNames.LocationVarName}});
                     GL.VertexAttribPointer({{fieldNames.LocationVarName}},
                                         size: {{size}},
                                         type: GL.FLOAT,
@@ -286,6 +287,7 @@ public class ShaderVboBindingGenerator : IIncrementalGenerator
                                         stride: {{fieldNames.StrideVarName}},
                                         offset: {{fieldNames.OffsetVarName}});
                     GL.EnableVertexAttribArray({{fieldNames.LocationVarName}});
+
             """);
         }
 
