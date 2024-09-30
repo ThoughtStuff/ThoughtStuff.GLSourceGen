@@ -22,6 +22,7 @@ public class ShaderVboBindingGenerator : IIncrementalGenerator
     const string Namespace = "ThoughtStuff.GLSourceGen";
     const string GeneratedAttributeName = "SetupVertexAttribAttribute";
     const string SetVertexDataMethodName = "SetVertexData";
+    const string EnableVertexBufferMethodName = $"EnableVertexBuffer";
     const string GeneratedAttributeFullName = $"{Namespace}.{GeneratedAttributeName}";
     const string ShaderExtension = ".glsl";
 
@@ -185,6 +186,8 @@ public class ShaderVboBindingGenerator : IIncrementalGenerator
         // Start building the generated code
         var sourceBuilder = new StringBuilder();
         sourceBuilder.AppendLine($$"""
+        #nullable enable
+
         using System.Runtime.InteropServices;
         using System.Runtime.InteropServices.JavaScript;
 
@@ -245,19 +248,17 @@ public class ShaderVboBindingGenerator : IIncrementalGenerator
             }
         """);
 
-        // Begin the partial method implementation
+        // Generate the EnableVertexBuffer method
+        // var enableVertexBufferMethodName = $"EnableVertexBuffer_{vertexTypeShortName}";
         sourceBuilder.AppendLine($$"""
 
-            internal static partial void {{model.MethodName}}(JSObject shaderProgram,
-                                                              JSObject vertexBuffer,
-                                                              Span<{{vertexTypeFullName}}> vertices,
-                                                              List<int> vertexAttributeLocations)
+            internal static void {{EnableVertexBufferMethodName}}(JSObject vertexBuffer,
+                                                                  List<int>? vertexAttributeLocations = null)
             {
+                // Bind the vertex buffer
                 GL.BindBuffer(GL.ARRAY_BUFFER, vertexBuffer);
 
-                // Initialize the vertex layout fields
-                {{initMethodName}}(shaderProgram);
-
+                // Enable the vertex attributes
         """);
 
         foreach (var field in model.VertexFields)
@@ -273,24 +274,47 @@ public class ShaderVboBindingGenerator : IIncrementalGenerator
                 _ => throw new UsageException($"Unsupported field type in {vertexTypeFullName}: {field.Type}")
             };
 
-            // Use the initialized member variables
+            // Save the locations if the list is provided
             sourceBuilder.AppendLine($$"""
-                    vertexAttributeLocations.Add({{fieldNames.LocationVarName}});
-                    GL.VertexAttribPointer({{fieldNames.LocationVarName}},
-                                           size: {{size}},
-                                           type: GL.FLOAT,
-                                           normalized: false,
-                                           stride: {{fieldNames.StrideVarName}},
-                                           offset: {{fieldNames.OffsetVarName}});
-                    GL.EnableVertexAttribArray({{fieldNames.LocationVarName}});
+                    if (vertexAttributeLocations is not null)
+                        vertexAttributeLocations.Add({{fieldNames.LocationVarName}});
 
+                    GL.VertexAttribPointer({{fieldNames.LocationVarName}},
+                                        size: {{size}},
+                                        type: GL.FLOAT,
+                                        normalized: false,
+                                        stride: {{fieldNames.StrideVarName}},
+                                        offset: {{fieldNames.OffsetVarName}});
+                    GL.EnableVertexAttribArray({{fieldNames.LocationVarName}});
             """);
         }
 
-        // Close the method and class definitions
-        sourceBuilder.Append($$"""
+        // Close the EnableVertexBuffer method
+        sourceBuilder.AppendLine($$"""
+            }
+        """);
+
+        // Begin the partial method implementation
+        sourceBuilder.AppendLine($$"""
+
+            internal static partial void {{model.MethodName}}(JSObject shaderProgram,
+                                                            JSObject vertexBuffer,
+                                                            Span<{{vertexTypeFullName}}> vertices,
+                                                            List<int> vertexAttributeLocations)
+            {
+                // Initialize the vertex layout fields
+                {{initMethodName}}(shaderProgram);
+
+                // Enable the vertex buffer and attributes
+                {{EnableVertexBufferMethodName}}(vertexBuffer, vertexAttributeLocations);
+
+                // Upload the vertex data to the GPU
                 GL.BufferData(GL.ARRAY_BUFFER, vertices, GL.STATIC_DRAW);
             }
+        """);
+
+        // Close the class definition
+        sourceBuilder.Append($$"""
         }
         """);
 
@@ -299,10 +323,10 @@ public class ShaderVboBindingGenerator : IIncrementalGenerator
         context.AddSource(fileNameHint, sourceText);
 
         // For troubleshooting, uncomment to write the generated source to a file in the obj directory
-#pragma warning disable RS1035 // Do not use APIs banned for analyzers
+    #pragma warning disable RS1035 // Do not use APIs banned for analyzers
         var objDir = @"C:\Source\GenShaderBinding\GenShaderBinding.GameApp\obj\Debug\net8.0";
         File.WriteAllText(Path.Combine(objDir, fileNameHint), sourceText.ToString());
-#pragma warning restore RS1035 // Do not use APIs banned for analyzers
+    #pragma warning restore RS1035 // Do not use APIs banned for analyzers
     }
 
     private static void ExceptionToError(SourceProductionContext context, Location location, UsageException ex)
