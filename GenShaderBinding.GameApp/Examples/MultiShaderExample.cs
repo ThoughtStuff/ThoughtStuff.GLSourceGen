@@ -31,12 +31,6 @@ public sealed partial class MultiShaderExample : IGame
 
     public string? OverlayText => "Multi-Shader Example";
 
-    [SetupVertexAttrib("Shaders/Basic/TextureUnlit_vert.glsl")]
-    partial void BindVertexBufferData(JSObject shaderProgram,
-                                      JSObject vertexBuffer,
-                                      Span<TextureVertex2> vertices,
-                                      List<int> vertexAttributeLocations);
-
     private void SetupVertexLayoutTextured()
     {
         var shaderProgram = _shaderProgramTextured!;
@@ -66,12 +60,6 @@ public sealed partial class MultiShaderExample : IGame
                                stride: Marshal.SizeOf<GenShaderBinding.GameApp.Examples.TextureVertex2>(),
                                offset: Marshal.OffsetOf<GenShaderBinding.GameApp.Examples.TextureVertex2>(nameof(GenShaderBinding.GameApp.Examples.TextureVertex2.TextureCoord)).ToInt32());
     }
-
-    [SetupVertexAttrib("Shaders/Perspective3D/ColorPassthrough_vert.glsl")]
-    partial void BindVertexBufferData(JSObject shaderProgram,
-                                      JSObject vertexBuffer,
-                                      Span<ColorVertex3> vertices,
-                                      List<int> vertexAttributeLocations);
 
     private void SetupVertexLayoutPerspective()
     {
@@ -139,7 +127,10 @@ public sealed partial class MultiShaderExample : IGame
         ];
         // Create a buffer for the quad's vertices
         _vertexBufferTextured = GL.CreateBuffer();
-        BindVertexBufferData(_shaderProgramTextured, _vertexBufferTextured, quadVertices, _vertexAttributeLocationsTextured);
+        TextureVertex2ShaderBinding.SetVertexData(_shaderProgramTextured,
+                                                  _vertexBufferTextured,
+                                                  quadVertices,
+                                                  _vertexAttributeLocationsTextured);
 
         // Enable alpha blending for the textures which have an alpha channel
         GL.Enable(GL.BLEND);
@@ -178,7 +169,10 @@ public sealed partial class MultiShaderExample : IGame
 
         // Create and bind the vertex buffer
         _vertexBufferTetrahedron = GL.CreateBuffer();
-        BindVertexBufferData(_shaderProgramPerspective, _vertexBufferTetrahedron, tetrahedronVertices, _vertexAttributeLocationsPerspective);
+        ColorVertex3ShaderBinding.SetVertexData(_shaderProgramPerspective,
+                                                _vertexBufferTetrahedron,
+                                                tetrahedronVertices,
+                                                _vertexAttributeLocationsPerspective);
 
         // Enable depth testing
         GL.Enable(GL.DEPTH_TEST);

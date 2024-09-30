@@ -12,6 +12,15 @@ struct TextureVertex2(Vector2 position, Vector2 textureCoord)
     public Vector2 TextureCoord = textureCoord;
 }
 
+[SetupVertexAttrib("Shaders/Basic/TextureUnlit_vert.glsl", typeof(TextureVertex2))]
+partial class TextureVertex2ShaderBinding
+{
+    internal static partial void SetVertexData(JSObject shaderProgram,
+                                               JSObject vertexBuffer,
+                                               Span<TextureVertex2> vertices,
+                                               List<int> vertexAttributeLocations);
+}
+
 /// <summary>
 /// Demonstrates texture-mapping a quad.
 /// The texture map has transparent pixels which allow the background color to show through.
@@ -27,12 +36,6 @@ sealed partial class HelloTextureMap : IGame
 
 
     public string? OverlayText => "Hello, Texture Map";
-
-    [SetupVertexAttrib("Shaders/Basic/TextureUnlit_vert.glsl")]
-    partial void BindVertexBufferData(JSObject shaderProgram,
-                                      JSObject vertexBuffer,
-                                      Span<TextureVertex2> vertices,
-                                      List<int> vertexAttributeLocations);
 
     public async Task LoadAssetsEssentialAsync(IShaderLoader shaderLoader, ITextureLoader textureLoader)
     {
@@ -69,7 +72,10 @@ sealed partial class HelloTextureMap : IGame
         ];
         // Create a buffer for the quad's vertices
         _positionBuffer = GL.CreateBuffer();
-        BindVertexBufferData(_shaderProgram, _positionBuffer, vertices, _vertexAttributeLocations);
+        TextureVertex2ShaderBinding.SetVertexData(_shaderProgram,
+                                                  _positionBuffer,
+                                                  vertices,
+                                                  _vertexAttributeLocations);
 
         // Enable alpha blending for the textures which have an alpha channel
         GL.Enable(GL.BLEND);

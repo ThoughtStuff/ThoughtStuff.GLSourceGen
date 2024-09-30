@@ -16,6 +16,7 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
 {
     const string Namespace = "ThoughtStuff.GLSourceGen";
     const string GeneratedAttributeName = "SetupVertexAttribAttribute";
+    const string SetVertexDataMethodName = "SetVertexData";
     const string GeneratedAttributeFullName = $"{Namespace}.{GeneratedAttributeName}";
     const string ShaderExtension = ".glsl";
 
@@ -46,10 +47,10 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
             })
             .Collect();
 
-        // Pipeline for methods with the GeneratedAttribute
+        // Pipeline for classes with the GeneratedAttribute
         var attributePipeline = context.SyntaxProvider.ForAttributeWithMetadataName(
             fullyQualifiedMetadataName: GeneratedAttributeFullName,
-            predicate: static (syntaxNode, _) => syntaxNode is BaseMethodDeclarationSyntax,
+            predicate: static (syntaxNode, _) => syntaxNode is ClassDeclarationSyntax,
             transform: CreateModel
         );
 
@@ -73,27 +74,20 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
 
     static Model CreateModel(GeneratorAttributeSyntaxContext context, CancellationToken cancellationToken)
     {
-        // Get the shader path from the attribute
-        var shaderPath = context.Attributes[0].ConstructorArguments
-            // .FirstOrDefault(pair => pair.Key == "ShaderPath")
-            .First()
-            .Value as string
+        // Get the shader path and vertex type from the attribute
+        var shaderPath = context.Attributes[0].ConstructorArguments[0].Value as string
             ?? throw new UsageException("ShaderPath argument is required");
-        var containingClass = context.TargetSymbol.ContainingType;
-        var methodSymbol = (IMethodSymbol)context.TargetSymbol;
-        // Verify parameters are as expected
-        var parameters = methodSymbol.Parameters;
-        CheckParameterList(parameters);
-        var vertexParameter = parameters[2].Type;
-        if (vertexParameter is not INamedTypeSymbol spanType || spanType.TypeArguments.Length != 1)
-        {
-            throw new UsageException("Expected 3rd parameter to be a Span<CustomVertexType>");
-        }
-        var vertexType = spanType.TypeArguments[0];
-        if (vertexType.TypeKind != TypeKind.Struct)
-        {
-            throw new UsageException("Vertex Type must be a struct type");
-        }
+
+        var vertexType = context.Attributes[0].ConstructorArguments[1].Value as ITypeSymbol
+            ?? throw new UsageException("VertexType argument is required");
+
+        var classSymbol = (INamedTypeSymbol)context.TargetSymbol;
+
+        // Get the namespace and class name
+        var containingNamespace = classSymbol.ContainingNamespace;
+        var className = classSymbol.Name;
+
+        // Get the vertex fields
         var vertexFields = vertexType.GetMembers()
                                      .OfType<IFieldSymbol>()
                                      .Select(f => new VariableDeclaration(f.Name, f.Type.Name))
@@ -102,12 +96,12 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
         var fullyQualified = SymbolDisplayFormat.FullyQualifiedFormat.WithGlobalNamespaceStyle(
             SymbolDisplayGlobalNamespaceStyle.Omitted);
         var minimalName = SymbolDisplayFormat.MinimallyQualifiedFormat;
+
         return new Model(
             ShaderPath: shaderPath,
-            // TODO: handle the case where the type is in a global namespace, nested, etc.
-            Namespace: containingClass.ContainingNamespace?.ToDisplayString(fullyQualified),
-            ClassName: containingClass.Name,
-            MethodName: context.TargetSymbol.Name,
+            Namespace: containingNamespace?.ToDisplayString(fullyQualified),
+            ClassName: className,
+            MethodName: SetVertexDataMethodName,
             VertexTypeFullName: vertexType.ToDisplayString(fullyQualified),
             VertexTypeShortName: vertexType.ToDisplayString(minimalName),
             VertexFields: vertexFields,
@@ -180,11 +174,11 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
         var shaderAttributeVariables =
             ShaderParsing.ExtractAttributesFromSource(shaderSource);
 
-        var sourceBuilder = new StringBuilder();
         var vertexTypeFullName = model.VertexTypeFullName;
         var vertexTypeShortName = model.VertexTypeShortName;
 
         // Start building the generated code
+        var sourceBuilder = new StringBuilder();
         sourceBuilder.AppendLine($$"""
         using System.Runtime.InteropServices;
         using System.Runtime.InteropServices.JavaScript;
@@ -193,29 +187,27 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
 
         partial class {{model.ClassName}}
         {
-            // Private member variables for attribute locations, strides, and offsets
+            // Private "cache" fields for attribute locations, strides, and offsets
         """);
 
-        // Declare private member variables with unique names
+        // Declare private fields with unique names
         foreach (var field in model.VertexFields)
         {
             var fieldNames = GenerateFieldNames(vertexTypeShortName, field.Name);
-
-            // Declare the private fields
-            sourceBuilder.AppendLine($"    private int {fieldNames.LocationVarName};");
-            sourceBuilder.AppendLine($"    private int {fieldNames.StrideVarName};");
-            sourceBuilder.AppendLine($"    private int {fieldNames.OffsetVarName};");
+            sourceBuilder.AppendLine($"    private static int {fieldNames.LocationVarName};");
+            sourceBuilder.AppendLine($"    private static int {fieldNames.StrideVarName};");
+            sourceBuilder.AppendLine($"    private static int {fieldNames.OffsetVarName};");
         }
 
-        // Generate the unique bool flag for the vertex type
+        // Generate a unique bool flag for the vertex type
         var vertexLayoutInitializedFlag = $"_{vertexTypeShortName}_vertexLayoutInitialized";
-        sourceBuilder.AppendLine($"    private bool {vertexLayoutInitializedFlag};");
+        sourceBuilder.AppendLine($"    private static bool {vertexLayoutInitializedFlag};");
 
-        // Generate the private method to initialize the vertex layout fields
+        // Generate a private method to initialize the vertex layout fields
         var initMethodName = $"_InitVertexLayoutFields_{vertexTypeShortName}";
         sourceBuilder.AppendLine($$"""
 
-            private void {{initMethodName}}(JSObject shaderProgram)
+            private static void {{initMethodName}}(JSObject shaderProgram)
             {
                 if ({{vertexLayoutInitializedFlag}})
                     return;
@@ -251,10 +243,10 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
         // Begin the partial method implementation
         sourceBuilder.AppendLine($$"""
 
-            partial void {{model.MethodName}}(JSObject shaderProgram,
-                                            JSObject vertexBuffer,
-                                            Span<{{vertexTypeFullName}}> vertices,
-                                            List<int> vertexAttributeLocations)
+            internal static partial void {{model.MethodName}}(JSObject shaderProgram,
+                                                              JSObject vertexBuffer,
+                                                              Span<{{vertexTypeFullName}}> vertices,
+                                                              List<int> vertexAttributeLocations)
             {
                 GL.BindBuffer(GL.ARRAY_BUFFER, vertexBuffer);
 
@@ -280,11 +272,11 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
             sourceBuilder.AppendLine($$"""
                     vertexAttributeLocations.Add({{fieldNames.LocationVarName}});
                     GL.VertexAttribPointer({{fieldNames.LocationVarName}},
-                                        size: {{size}},
-                                        type: GL.FLOAT,
-                                        normalized: false,
-                                        stride: {{fieldNames.StrideVarName}},
-                                        offset: {{fieldNames.OffsetVarName}});
+                                           size: {{size}},
+                                           type: GL.FLOAT,
+                                           normalized: false,
+                                           stride: {{fieldNames.StrideVarName}},
+                                           offset: {{fieldNames.OffsetVarName}});
                     GL.EnableVertexAttribArray({{fieldNames.LocationVarName}});
 
             """);
@@ -292,7 +284,6 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
 
         // Close the method and class definitions
         sourceBuilder.Append($$"""
-
                 GL.BufferData(GL.ARRAY_BUFFER, vertices, GL.STATIC_DRAW);
             }
         }
@@ -303,10 +294,10 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
         context.AddSource(fileNameHint, sourceText);
 
         // For troubleshooting, uncomment to write the generated source to a file in the obj directory
-        #pragma warning disable RS1035 // Do not use APIs banned for analyzers
+#pragma warning disable RS1035 // Do not use APIs banned for analyzers
         var objDir = @"C:\Source\GenShaderBinding\GenShaderBinding.GameApp\obj\Debug\net8.0";
         File.WriteAllText(Path.Combine(objDir, fileNameHint), sourceText.ToString());
-        #pragma warning restore RS1035 // Do not use APIs banned for analyzers
+#pragma warning restore RS1035 // Do not use APIs banned for analyzers
     }
 
     private static void ExceptionToError(SourceProductionContext context, Location location, UsageException ex)
@@ -339,20 +330,23 @@ public class GlArrayBufferBindingGenerator : IIncrementalGenerator
     {
         context.RegisterPostInitializationOutput(static postInitializationContext =>
             postInitializationContext.AddSource($"{GeneratedAttributeName}.g.cs", SourceText.From($$"""
-                using System;
-                namespace {{Namespace}}
-                {
-                    [AttributeUsage(AttributeTargets.Method)]
-                    internal sealed class {{GeneratedAttributeName}} : Attribute
-                    {
-                        public string ShaderPath { get; }
+            using System;
 
-                        public {{GeneratedAttributeName}}(string shaderPath)
-                        {
-                            ShaderPath = shaderPath;
-                        }
+            namespace {{Namespace}}
+            {
+                [AttributeUsage(AttributeTargets.Class)]
+                internal sealed class {{GeneratedAttributeName}} : Attribute
+                {
+                    public string ShaderPath { get; }
+                    public Type VertexType { get; }
+
+                    public {{GeneratedAttributeName}}(string shaderPath, Type vertexType)
+                    {
+                        ShaderPath = shaderPath;
+                        VertexType = vertexType;
                     }
                 }
-                """, Encoding.UTF8)));
+            }
+            """, Encoding.UTF8)));
     }
 }

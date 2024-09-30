@@ -1,6 +1,5 @@
 using System.Runtime.InteropServices.JavaScript;
 using GenShaderBinding.GameApp.GameFramework;
-using ThoughtStuff.GLSourceGen;
 
 namespace GenShaderBinding.GameApp.Examples;
 
@@ -12,12 +11,6 @@ sealed partial class HelloQuad : IGame
     private readonly List<int> _vertexAttributeLocations = [];
 
     public string? OverlayText => "Hello, Quad";
-
-    [SetupVertexAttrib("Shaders/Basic/ColorPassthrough_vert.glsl")]
-    partial void BindVertexBufferData(JSObject shaderProgram,
-                                      JSObject vertexBuffer,
-                                      Span<ColorVertex2> vertices,
-                                      List<int> vertexAttributeLocations);
 
     public void InitializeScene(IShaderLoader shaderLoader)
     {
@@ -34,7 +27,10 @@ sealed partial class HelloQuad : IGame
         ];
         // Create a buffer for the quad's vertex positions.
         _positionBuffer = GL.CreateBuffer();
-        BindVertexBufferData(_shaderProgram, _positionBuffer, vertices, _vertexAttributeLocations);
+        ColorVertex2ShaderBinding.SetVertexData(_shaderProgram,
+                                                _positionBuffer,
+                                                vertices,
+                                                _vertexAttributeLocations);
 
         // Set the clear color to cornflower blue
         GL.ClearColor(0.392f, 0.584f, 0.929f, 1.0f);
