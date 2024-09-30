@@ -95,15 +95,18 @@ partial class HelloTriangle
             new ColorVertex2(new(1, -1), new(0, 0, 1, 1))    // Blue vertex
         ];
 
-        // Create a buffer for the triangle's vertex positions.
-        var positionBuffer = GL.CreateBuffer();
+        // Create a buffer for the triangle's vertices.
+        var vertexBuffer = GL.CreateBuffer();
         // Call the generated function which sets up the vertex buffer and passes the data to the GPU.
-        ColorVertex2ShaderBinding.SetBufferData(shaderProgram, positionBuffer, vertices, vertexAttributeLocations);
+        ColorVertex2ShaderBinding.SetBufferData(shaderProgram, vertexBuffer, vertices, vertexAttributeLocations);
     }
 
     public void Render()
     {
         GL.Clear(GL.COLOR_BUFFER_BIT);
+        // If necessary:
+        // ColorVertex2ShaderBinding.EnableVertexBuffer(vertexBuffer);
+        // GL.UseProgram(shaderProgram);
         GL.DrawArrays(GL.TRIANGLES, 0, 3);
     }
 ```
