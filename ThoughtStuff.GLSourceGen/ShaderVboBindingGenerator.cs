@@ -12,7 +12,6 @@ using Microsoft.CodeAnalysis.Text;
 namespace ThoughtStuff.GLSourceGen;
 
 // TODO: throw error if shader source file not found (as opposed to sequence contains no elements)
-// TODO: figure out why one partial method must be declared
 
 /// <summary>
 /// Generates code to bind vertex buffer objects (VBOs) to shader attributes.
