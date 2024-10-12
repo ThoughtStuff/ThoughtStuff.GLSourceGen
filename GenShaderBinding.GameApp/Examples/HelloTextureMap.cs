@@ -15,10 +15,6 @@ struct TextureVertex2(Vector2 position, Vector2 textureCoord)
 [SetupVertexAttrib("Shaders/Basic/TextureUnlit_vert.glsl", typeof(TextureVertex2))]
 partial class TextureVertex2ShaderBinding
 {
-    internal static partial void SetVertexData(JSObject shaderProgram,
-                                               JSObject vertexBuffer,
-                                               Span<TextureVertex2> vertices,
-                                               List<int> vertexAttributeLocations);
 }
 
 /// <summary>

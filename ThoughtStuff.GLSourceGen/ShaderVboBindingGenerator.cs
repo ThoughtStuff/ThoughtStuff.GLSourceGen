@@ -278,7 +278,7 @@ public class ShaderVboBindingGenerator : IIncrementalGenerator
         // Begin the partial method implementation
         sourceBuilder.AppendLine($$"""
 
-            internal static partial void {{model.MethodName}}(JSObject shaderProgram,
+            internal static void {{model.MethodName}}(JSObject shaderProgram,
                                                             JSObject vertexBuffer,
                                                             Span<{{vertexTypeFullName}}> vertices,
                                                             List<int> vertexAttributeLocations)

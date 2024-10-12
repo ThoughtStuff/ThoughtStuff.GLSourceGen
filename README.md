@@ -64,18 +64,18 @@ We can leverage the `SetupVertexAttrib` attribute to generate the necessary Open
 [SetupVertexAttrib("Shaders/Basic_vert.glsl", typeof(ColorVertex2))]
 partial class ColorVertex2ShaderBinding
 {
-    // While not strictly necessary, these method declarations can help the IDE with code completion
+    // Generated methods:
 
     // Call SetVertexData during initialization to set up the vertex buffer and pass the data to the GPU.
-    internal static partial void SetVertexData(JSObject shaderProgram,
-                                               JSObject vertexBuffer,
-                                               Span<ColorVertex2> vertices,
-                                               List<int> vertexAttributeLocations);
+    // internal static void SetVertexData(JSObject shaderProgram,
+    //                                            JSObject vertexBuffer,
+    //                                            Span<ColorVertex2> vertices,
+    //                                            List<int> vertexAttributeLocations);
 
     // Call EnableVertexBuffer during rendering if the vertex buffer needs to be re-enabled,
     // or if you are switching between multiple vertex buffers.
-    internal static void EnableVertexBuffer(JSObject vertexBuffer,
-                                            List<int>? vertexAttributeLocations = null);
+    // internal static void EnableVertexBuffer(JSObject vertexBuffer,
+    //                                         List<int>? vertexAttributeLocations = null);
 }
 ```
 
@@ -148,7 +148,7 @@ partial class ColorVertex2ShaderBinding
     }
 
     internal static void EnableVertexBuffer(JSObject vertexBuffer,
-                                                          List<int>? vertexAttributeLocations = null)
+                                            List<int>? vertexAttributeLocations = null)
     {
         if (!_ColorVertex2_vertexLayoutInitialized)
             throw new InvalidOperationException("Vertex layout fields have not been initialized.");
@@ -177,10 +177,10 @@ partial class ColorVertex2ShaderBinding
 
     }
 
-    internal static partial void SetVertexData(JSObject shaderProgram,
-                                                    JSObject vertexBuffer,
-                                                    Span<GenShaderBinding.GameApp.Examples.ColorVertex2> vertices,
-                                                    List<int> vertexAttributeLocations)
+    internal static void SetVertexData(JSObject shaderProgram,
+                                       JSObject vertexBuffer,
+                                       Span<GenShaderBinding.GameApp.Examples.ColorVertex2> vertices,
+                                       List<int> vertexAttributeLocations)
     {
         // Initialize the vertex layout fields
         _InitVertexLayoutFields_ColorVertex2(shaderProgram);

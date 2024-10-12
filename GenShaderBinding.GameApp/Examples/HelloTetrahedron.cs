@@ -17,10 +17,6 @@ struct ColorVertex3(Vector3 position, Vector3 color)
 [SetupVertexAttrib("Shaders/Perspective3D/ColorPassthrough_vert.glsl", typeof(ColorVertex3))]
 partial class ColorVertex3ShaderBinding
 {
-    internal static partial void SetVertexData(JSObject shaderProgram,
-                                               JSObject vertexBuffer,
-                                               Span<ColorVertex3> vertices,
-                                               List<int> vertexAttributeLocations);
 }
 
 sealed partial class HelloTetrahedron : IGame

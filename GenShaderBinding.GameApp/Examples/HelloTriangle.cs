@@ -15,10 +15,18 @@ struct ColorVertex2(Vector2 position, Vector4 color)
 [SetupVertexAttrib("Shaders/Basic/ColorPassthrough_vert.glsl", typeof(ColorVertex2))]
 partial class ColorVertex2ShaderBinding
 {
-    internal static partial void SetVertexData(JSObject shaderProgram,
-                                               JSObject vertexBuffer,
-                                               Span<ColorVertex2> vertices,
-                                               List<int> vertexAttributeLocations);
+    // Generated methods:
+
+    // Call SetVertexData during initialization to set up the vertex buffer and pass the data to the GPU.
+    // internal static void SetVertexData(JSObject shaderProgram,
+    //                                            JSObject vertexBuffer,
+    //                                            Span<ColorVertex2> vertices,
+    //                                            List<int> vertexAttributeLocations);
+
+    // Call EnableVertexBuffer during rendering if the vertex buffer needs to be re-enabled,
+    // or if you are switching between multiple vertex buffers.
+    // internal static void EnableVertexBuffer(JSObject vertexBuffer,
+    //                                         List<int>? vertexAttributeLocations = null);
 }
 
 sealed partial class HelloTriangle : IGame

@@ -11,19 +11,11 @@ namespace GenShaderBinding.GameApp.Examples.InstanceParticles;
 [SetupVertexAttrib("Shaders/Transformed2D/SpriteSheet_vert.glsl", typeof(TextureVertex2))]
 partial class SpriteTextureVertex2ShaderBinding
 {
-    internal static partial void SetVertexData(JSObject shaderProgram,
-                                               JSObject vertexBuffer,
-                                               Span<TextureVertex2> vertices,
-                                               List<int> vertexAttributeLocations);
 }
 
 [SetupVertexAttrib("Shaders/Transformed2D/SpriteSheet_vert.glsl", typeof(InstanceData))]
 partial class InstanceDataShaderBinding
 {
-    internal static partial void SetVertexData(JSObject shaderProgram,
-                                               JSObject vertexBuffer,
-                                               Span<InstanceData> vertices,
-                                               List<int> vertexAttributeLocations);
 }
 
 sealed partial class InstanceParticlesExample : IGame
