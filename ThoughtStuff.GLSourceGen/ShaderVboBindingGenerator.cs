@@ -304,10 +304,10 @@ public class ShaderVboBindingGenerator : IIncrementalGenerator
         context.AddSource(fileNameHint, sourceText);
 
         // For troubleshooting, uncomment to write the generated source to a file in the obj directory
-    #pragma warning disable RS1035 // Do not use APIs banned for analyzers
-        var objDir = @"C:\Source\GenShaderBinding\GenShaderBinding.GameApp\obj\Debug\net8.0";
-        File.WriteAllText(Path.Combine(objDir, fileNameHint), sourceText.ToString());
-    #pragma warning restore RS1035 // Do not use APIs banned for analyzers
+    // #pragma warning disable RS1035 // Do not use APIs banned for analyzers
+    //     var objDir = @"C:\Source\GenShaderBinding\GenShaderBinding.GameApp\obj\Debug\net8.0";
+    //     File.WriteAllText(Path.Combine(objDir, fileNameHint), sourceText.ToString());
+    // #pragma warning restore RS1035 // Do not use APIs banned for analyzers
     }
 
     private static void ExceptionToError(SourceProductionContext context, Location location, UsageException ex)
