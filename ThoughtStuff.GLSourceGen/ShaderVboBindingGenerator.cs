@@ -11,6 +11,9 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace ThoughtStuff.GLSourceGen;
 
+// TODO: throw error if shader source file not found (as opposed to sequence contains no elements)
+// TODO: figure out why one partial method must be declared
+
 /// <summary>
 /// Generates code to bind vertex buffer objects (VBOs) to shader attributes.
 /// Arguments to GL VertexAttribPointer are generated at compile time
@@ -112,30 +115,6 @@ public class ShaderVboBindingGenerator : IIncrementalGenerator
             VertexTypeShortName: vertexType.ToDisplayString(minimalName),
             VertexFields: vertexFields,
             Location: context.TargetSymbol.Locations.FirstOrDefault());
-    }
-
-    private static void CheckParameterList(ImmutableArray<IParameterSymbol> parameters)
-    {
-        const string expectedParameterList = "(JSObject shaderProgram, JSObject vertexBuffer, Span<CustomVertexType> vertices, List<int> vertexAttributeLocations)";
-        if (parameters.Length != 4)
-        {
-            throw new UsageException($"Expected 4 parameters: {expectedParameterList}");
-        }
-        var isMatching = parameters[0].Type.Name == "JSObject" &&
-                         parameters[1].Type.Name == "JSObject" &&
-                         parameters[2].Type.Name == "Span" &&
-                         parameters[3].Type.Name == "List";
-        if (!isMatching)
-        {
-            throw new UsageException($"Expected parameter types to match: {expectedParameterList}");
-        }
-        var locationsParameter = parameters[3].Type;
-        if (locationsParameter is not INamedTypeSymbol listType
-            || listType.TypeArguments.Length != 1
-            || listType.TypeArguments[0].Name != "Int32")
-        {
-            throw new UsageException("Expected 4th parameter to be a List<int>");
-        }
     }
 
     private static void GenerateSource(SourceProductionContext context,
