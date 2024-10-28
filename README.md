@@ -11,7 +11,7 @@ Specifically, it generates calls to:
 
 ### Benefits of Source Generation
 
-- **Compile-Time Generation**: Code is generated during compilation, eliminating without using reflection.
+- **Compile-Time Generation**: Code is generated during compilation, without using reflection.
 - **Performance**: No reflection means faster execution and lower memory usage.
 - **AOT Compatibility**: Fully supports Ahead-of-Time (AOT) compilation for platforms like WebAssembly.
 
